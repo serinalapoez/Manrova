@@ -1,5 +1,53 @@
 # Manrova Architecture
 
+```mermaid
+flowchart TB
+    subgraph Sensors["Vessel Telemetry"]
+        GPS[GPS]
+        Radar[Radar]
+        Gyro[Gyro / Speed Log]
+    end
+
+    Sensors --> NavAgent["Nav Integrity Agent<br/>(deterministic anomaly check)"]
+
+    NavAgent -->|anomaly found| Conductor["Fleet Conductor<br/>(orchestrator)"]
+
+    Conductor --> CrewAgent["Crew Readiness Agent"]
+    Conductor --> PatternAgent["Fleet Pattern Agent"]
+    Conductor --> ComplianceAgent["Compliance Readiness Agent"]
+
+    CrewAgent --> Fusion["Risk Fusion<br/>(deterministic, weighted)"]
+    PatternAgent --> Fusion
+    ComplianceAgent --> Fusion
+    NavAgent --> Fusion
+
+    Fusion --> Decision{Overall<br/>Severity}
+    Decision -->|none / low| Monitor["Continue Monitoring<br/>(no notification)"]
+    Decision -->|high / critical| ActionPlan["Prepare Actions<br/>(evidence, notifications)"]
+
+    ActionPlan --> Approval["Human Approval<br/>(Master / DPA / Class Society)"]
+    Approval -->|approved| Execute["Execute + Track"]
+    Execute --> Resolution["Resolution"]
+    Resolution --> Memory["Fleet Memory<br/>(learning for next time)"]
+```
+
+## Provider layering
+
+```mermaid
+flowchart LR
+    Core["Shared Core<br/>core/ · agents/ · conductor/ · data/"]
+    Core --> AWS["AWS Provider<br/>Strands Agents SDK<br/>(providers/aws/strands/)"]
+    Core --> Google["Google Provider<br/>Gemini + ADK + Cloud Run<br/>(providers/google/adk/)"]
+    AWS --> Bedrock["Amazon Bedrock<br/>+ AgentCore (optional)"]
+    Google --> CloudRun["Google Cloud Run"]
+```
+
+`core/`, `agents/`, `conductor/` and `data/` are the **shared product core** -
+identical business logic for both hackathon submissions. Only
+`providers/aws/` and `providers/google/` differ.
+
+## Fallback ASCII version (if Mermaid doesn't render in your viewer)
+
 ```
 MANROVA
    |

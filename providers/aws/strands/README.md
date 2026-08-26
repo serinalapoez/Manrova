@@ -4,6 +4,36 @@ This is where the Agents for Humans (Strands Agents SDK) implementation
 lives. It wraps the shared core in `core/`, `agents/`, and `conductor/` -
 it does not reimplement business logic.
 
+## What's here
+
+- `tools.py` - `@tool`-decorated functions wrapping each deterministic core
+  agent, same responsibility split as `providers/google/adk/tools.py`.
+- `agents.py` - four specialist Strands `Agent`s (one tool each), each
+  wrapped as a `@tool` the Fleet Conductor can call ("agents as tools"
+  pattern), plus `fleet_conductor`, the root orchestrating agent.
+- `requirements-aws.txt` - `strands-agents` + `strands-agents-tools`.
+
+## Run it locally
+
+```bash
+cd Manrova
+pip install -r providers/aws/strands/requirements-aws.txt
+```
+
+By default Strands uses Amazon Bedrock with Claude as the model provider,
+which needs AWS credentials configured (`aws configure`) with Bedrock model
+access enabled in your region. If you'd rather not set up Bedrock access
+for local testing, Strands also supports OpenAI, Gemini, Ollama, and
+LiteLLM as drop-in model providers - see strandsagents.com/docs for the
+one-line swap.
+
+```bash
+python providers/aws/strands/agents.py
+```
+
+This runs the MV Atlas smoke test scenario built into the bottom of
+`agents.py` and prints the Conductor's full response.
+
 ## Plan
 
 1. Wrap each specialist agent class (`agents/*/agent.py`) as a Strands Tool,
@@ -17,10 +47,15 @@ it does not reimplement business logic.
 
 ## Status
 
-- [ ] Strands Agent wrapper for NavIntegrityAgent
-- [ ] Strands Agent wrapper for CrewReadinessAgent
-- [ ] Strands Agent wrapper for FleetPatternAgent
-- [ ] Strands Agent wrapper for ComplianceReadinessAgent
-- [ ] Strands orchestrating agent for FleetConductor
-- [ ] AgentCore Runtime deployment
+- [x] Strands Agent wrapper for NavIntegrityAgent
+- [x] Strands Agent wrapper for CrewReadinessAgent
+- [x] Strands Agent wrapper for FleetPatternAgent
+- [x] Strands Agent wrapper for ComplianceReadinessAgent
+- [x] Strands orchestrating agent for FleetConductor (`fleet_conductor` in
+      `agents.py`, using the "agents as tools" multi-agent pattern)
+- [ ] Actually run this locally and confirm the model follows the
+      "consult all four before fusing risk" instruction reliably
+- [ ] AgentCore Runtime deployment (optional, strengthens Technical
+      Implementation score per judging criteria)
 - [ ] AWS Builder ID attached to submission
+- [ ] Architecture diagram + demo video
