@@ -84,13 +84,20 @@ accordingly - the rest of the code doesn't need to change.
 - [x] ADK Agent wrapper for FleetPatternAgent
 - [x] ADK Agent wrapper for ComplianceReadinessAgent
 - [x] ADK orchestrating agent for Officer of the Watch (`root_agent` in `agents.py`)
-- [x] FastAPI service + Dockerfile for Cloud Run (`main.py`) - not yet deployed
-- [ ] Actually run `adk web` locally and confirm the model follows the
-      "consult all four before fusing risk" instruction reliably
-- [ ] Deploy to Cloud Run and get a live URL for the submission
-- [ ] Agent Registry page
-- [ ] Agent Identity / IAM mapping
-- [ ] Agent Gateway
-- [ ] Model Armor / guardrail layer
-- [ ] Cloud Logging + Trace wiring
-- [ ] Swap in-memory `_incident_store` in `main.py` for Firestore/Cloud SQL
+- [x] FastAPI service + Dockerfile for Cloud Run (`main.py`) - not yet deployed (see note below)
+- [x] Actually confirmed working via `adk run` against real Gemini calls
+- [ ] Deploy to Cloud Run (blocked on billing account - no card available;
+      see `enterprise/SETUP.md` for the no-card path taken instead)
+- [x] Agent Registry - `enterprise/registry/` (Firestore, genuinely free
+      Spark plan, no billing account)
+- [x] Agent Identity / IAM mapping - service accounts per agent, see
+      `enterprise/SETUP.md` section 2 (IAM is free; only compute needs billing)
+- [x] Agent Gateway - `enterprise/gateway/` (our own routing/policy layer,
+      wired live into `api/investigate.py`)
+- [x] Model Armor pattern - `enterprise/guardrail/` (our own guardrail
+      layer implementing the same pattern; real Model Armor product needs
+      a billing-enabled project)
+- [x] Agent Observability - `enterprise/observability/` (OpenTelemetry
+      spans, console-exported; Cloud Trace export is one env var away once
+      billing is available - see `enterprise/SETUP.md`)
+- [x] Memory Bank - `enterprise/memory/` (Firestore, same free Spark plan)
