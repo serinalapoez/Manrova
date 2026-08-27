@@ -63,7 +63,7 @@ class NavTelemetry:
 @dataclass
 class AgentEvent:
     """Structured output every specialist agent produces. This is what gets
-    reasoned over by the Conductor - never raw free text."""
+    reasoned over by the Officer of the Watch - never raw free text."""
     event_id: str
     agent: str
     event_type: str
@@ -117,6 +117,6 @@ class Incident:
     def log(self, actor: str, description: str) -> None:
         self.timeline.append(TimelineEntry(datetime.utcnow(), actor, description))
 
-    def transition(self, new_state: IncidentState, actor: str = "Conductor") -> None:
+    def transition(self, new_state: IncidentState, actor: str = "Officer of the Watch") -> None:
         self.log(actor, f"State: {self.state.value} -> {new_state.value}")
         self.state = new_state

@@ -3,7 +3,7 @@ Strands Agents
 ================
 Wires the deterministic core into a Strands multi-agent system using the
 "agents as tools" pattern: each specialist is its own Strands Agent with one
-tool, then wrapped as a @tool the Fleet Conductor agent can call. This
+tool, then wrapped as a @tool the Officer of the Watch agent can call. This
 mirrors providers/google/adk/agents.py's sub_agents composition, adapted to
 Strands' idiom.
 
@@ -66,7 +66,7 @@ compliance_readiness_agent = Agent(
 )
 
 
-# --- Wrap each specialist agent as a tool the Conductor can call. This is
+# --- Wrap each specialist agent as a tool the Officer of the Watch can call. This is
 # Strands' documented "agents as tools" pattern for multi-agent systems. ---
 
 @tool
@@ -103,9 +103,9 @@ def consult_compliance_readiness(query: str) -> str:
     return str(compliance_readiness_agent(query))
 
 
-# --- Fleet Conductor: the root orchestrating agent. ---
+# --- Officer of the Watch (OOW): the root orchestrating agent. ---
 
-fleet_conductor = Agent(
+officer_of_the_watch = Agent(
     tools=[
         consult_nav_integrity,
         consult_crew_readiness,
@@ -114,7 +114,7 @@ fleet_conductor = Agent(
         fuse_fleet_risk,
     ],
     system_prompt=(
-        "You are the Fleet Conductor for Manrova, an autonomous maritime fleet operations system. "
+        "You are the Officer of the Watch for Manrova, an autonomous maritime fleet operations system. "
         "When a navigation anomaly is reported for a vessel: "
         "1) Consult the navigation integrity specialist first if navigation data hasn't already "
         "been checked. "
@@ -135,7 +135,7 @@ fleet_conductor = Agent(
 
 if __name__ == "__main__":
     # Quick local smoke test - mirrors the MV Atlas demo scenario.
-    result = fleet_conductor(
+    result = officer_of_the_watch(
         "MV Atlas (V-001) is reporting GPS at 1.290,103.850 and radar at "
         "1.305,103.862, gyro heading 178.4, speed 12.1 knots - investigate this."
     )

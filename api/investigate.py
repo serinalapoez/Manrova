@@ -2,7 +2,7 @@
 Manrova Live Demo - Serverless Investigation Endpoint
 ========================================================
 Vercel Python function. Reuses the exact shared core (core/, agents/,
-conductor/, data/demo/) - no duplicated business logic. Makes exactly ONE
+oow/, data/demo/) - no duplicated business logic. Makes exactly ONE
 Gemini call to narrate the already-computed structured result, instead of
 the full multi-agent delegation chain (8-10+ calls) used in the ADK/Strands
 builds - this keeps the public demo fast, cheap, and resistant to free-tier
@@ -20,7 +20,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from conductor.fleet_conductor.conductor import FleetConductor
+from oow.officer_of_the_watch import OfficerOfTheWatch
 from data.demo.fleet_data import (
     HERO_TELEMETRY, CREW_RECORD, COMPLIANCE_RECORD, NEAR_MISS_REPORTS,
 )
@@ -31,7 +31,7 @@ FALLBACK_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.7-flash", "
 def _build_prompt(incident) -> str:
     r = incident.risk
     lines = [
-        "You are the Fleet Conductor for Manrova, an autonomous maritime fleet operations system.",
+        "You are the Officer of the Watch for Manrova, an autonomous maritime fleet operations system.",
         "Write a short, clear incident narrative (3-4 sentences, plain prose, no markdown headers) "
         "for a fleet operations officer, based ONLY on these already-computed findings - do not "
         "invent any numbers not shown here:",
@@ -93,13 +93,13 @@ def _narrate_with_gemini(incident) -> tuple[str, bool]:
 
 
 def _run_investigation() -> dict:
-    conductor = FleetConductor()
+    oow = OfficerOfTheWatch()
     fleet_context = {
         "crew_record": CREW_RECORD,
         "near_miss_reports": NEAR_MISS_REPORTS,
         "compliance_record": COMPLIANCE_RECORD,
     }
-    incident = conductor.handle_telemetry(HERO_TELEMETRY, fleet_context)
+    incident = oow.handle_telemetry(HERO_TELEMETRY, fleet_context)
 
     if incident is None:
         return {"incident": None, "message": "No anomaly detected - fleet remains in normal operations."}

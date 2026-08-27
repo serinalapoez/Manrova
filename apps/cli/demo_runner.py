@@ -17,7 +17,7 @@ from data.demo.fleet_data import (
     FLEET_OVERVIEW, HERO_TELEMETRY, CREW_RECORD, COMPLIANCE_RECORD,
     NEAR_MISS_REPORTS, HERO_VESSEL_ID,
 )
-from conductor.fleet_conductor.conductor import FleetConductor
+from oow.officer_of_the_watch import OfficerOfTheWatch
 
 
 def line(char="-", n=60):
@@ -41,20 +41,20 @@ def main():
     line()
     print(f"Telemetry tick received for {HERO_VESSEL_ID} (MV Atlas). GPS and radar disagree.")
 
-    conductor = FleetConductor()
+    oow = OfficerOfTheWatch()
     fleet_context = {
         "crew_record": CREW_RECORD,
         "near_miss_reports": NEAR_MISS_REPORTS,
         "compliance_record": COMPLIANCE_RECORD,
     }
 
-    incident = conductor.handle_telemetry(HERO_TELEMETRY, fleet_context)
+    incident = oow.handle_telemetry(HERO_TELEMETRY, fleet_context)
 
     if incident is None:
         print("No anomaly above threshold. Manrova remains silent.")
         return
 
-    print("\nSCENE 3-6 - Conductor activates, gathers context, fuses risk, does the work")
+    print("\nSCENE 3-6 - Officer of the Watch activates, gathers context, fuses risk, does the work")
     line()
     for entry in incident.timeline:
         print(f"{entry.timestamp.strftime('%H:%M:%S')}  {entry.actor:<24} {entry.description}")
@@ -79,7 +79,7 @@ def main():
         print(f"  [ REVIEW ]  [ APPROVE & SEND ]   {a.description}")
 
     print("\n(simulating human approval by DPA)")
-    conductor.approve_and_execute(incident, approver="DPA")
+    oow.approve_and_execute(incident, approver="DPA")
 
     print("\nSCENE 8-9 - Follow-through and fleet learning")
     line()

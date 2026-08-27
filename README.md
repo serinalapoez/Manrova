@@ -2,12 +2,12 @@
 
 **The autonomous command layer for fleet operations.**
 
-Four agents watch. One Conductor acts. The fleet learns.
+Four agents watch. The Officer of the Watch acts. The fleet learns.
 
 Manrova is an autonomous fleet operations agent for maritime organizations.
 Four specialist agents continuously monitor navigation integrity, crew
 readiness, fleet-wide near-miss patterns, and compliance readiness. A
-central Fleet Conductor correlates their findings, investigates emerging
+central Officer of the Watch (OOW) correlates their findings, investigates emerging
 incidents, gathers context, prepares evidence and response actions, and
 tracks each incident through to resolution - only asking a human for
 decisions that genuinely require human judgment.
@@ -40,7 +40,7 @@ pytest tests/ -q
 Manrova/
 ├── core/                   # domain models, state machine, risk fusion - shared
 ├── agents/                 # 4 specialist agents - deterministic tools + reasoning seam
-├── conductor/               # Fleet Conductor - top-level orchestrator
+├── oow/                     # Officer of the Watch - top-level orchestrator
 ├── data/demo/               # synthetic fleet + incident scenario data
 ├── apps/cli/                # runnable command-center demo (provider-agnostic)
 ├── providers/aws/strands/   # AWS/Strands-specific wiring (Agents for Humans)
@@ -61,7 +61,7 @@ interpret structured evidence and produce narrative output. See
 
 - [x] Shared core: domain models, incident state machine, risk fusion
 - [x] Four specialist agents (deterministic logic, demo-ready)
-- [x] Fleet Conductor orchestration, end-to-end incident workflow
+- [x] Officer of the Watch orchestration, end-to-end incident workflow
 - [x] Synthetic demo dataset (MV Atlas scenario) + CLI command-center demo
 - [ ] AWS/Strands provider implementation (`providers/aws/strands/`)
 - [x] Google/ADK agent wrappers + Cloud Run service (`providers/google/adk/`)

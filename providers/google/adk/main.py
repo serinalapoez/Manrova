@@ -2,7 +2,7 @@
 Manrova Cloud Run Service
 ============================
 HTTP entrypoint for the Fortified Enterprise Fleet deployment. Wraps the
-deterministic FleetConductor directly (fast, cheap, always-on path for
+deterministic Officer of the Watch (OOW) directly (fast, cheap, always-on path for
 telemetry ingestion) and exposes a separate endpoint for full ADK/Gemini
 incident narration, so the expensive reasoning call only runs when an
 incident actually needs investigating - not on every telemetry tick.
@@ -22,10 +22,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from core.domain.models import NavTelemetry
-from conductor.fleet_conductor.conductor import FleetConductor
+from oow.officer_of_the_watch import OfficerOfTheWatch
 
-app = FastAPI(title="Manrova Fleet Conductor")
-_conductor = FleetConductor()
+app = FastAPI(title="Manrova Officer of the Watch")
+_oow = OfficerOfTheWatch()
 
 
 class TelemetryIn(BaseModel):
@@ -63,7 +63,7 @@ def ingest_telemetry(payload: TelemetryIn):
         "near_miss_reports": payload.near_miss_reports,
         "compliance_record": payload.compliance_record,
     }
-    incident = _conductor.handle_telemetry(telemetry, fleet_context)
+    incident = _oow.handle_telemetry(telemetry, fleet_context)
     if incident is None:
         return {"incident": None, "message": "No anomaly detected."}
 
@@ -111,5 +111,5 @@ def approve(payload: ApprovalIn):
     incident = _incident_store.get(payload.incident_id)
     if incident is None:
         return {"error": "incident not found or not tracked in this demo instance"}
-    _conductor.approve_and_execute(incident, approver=payload.approver)
+    _oow.approve_and_execute(incident, approver=payload.approver)
     return {"incident_id": incident.incident_id, "state": incident.state.value, "resolved": incident.resolved}

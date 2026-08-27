@@ -5,9 +5,9 @@ Wires the deterministic core into Gemini-powered ADK agents. Each specialist
 is a narrow LlmAgent with exactly one tool - it cannot do anything the tool
 doesn't expose, which keeps it from freelancing on safety-critical findings.
 
-The Fleet Conductor is the root_agent: it has all four specialists as
+The Officer of the Watch (OOW) is the root_agent: it has all four specialists as
 sub_agents plus the fusion tool, and its instruction encodes the same
-workflow discipline as conductor/fleet_conductor/conductor.py - gather
+workflow discipline as oow/officer_of_the_watch.py - gather
 context from every specialist before fusing risk, and always fuse risk
 before proposing any external action.
 
@@ -88,10 +88,10 @@ compliance_readiness_agent = Agent(
 
 root_agent = Agent(
     model=new_model(),
-    name="fleet_conductor",
+    name="officer_of_the_watch",
     description="Orchestrates fleet incident investigation across all specialist agents.",
     instruction=(
-        "You are the Fleet Conductor for Manrova, an autonomous maritime fleet operations system. "
+        "You are the Officer of the Watch for Manrova, an autonomous maritime fleet operations system. "
         "When a navigation anomaly is reported for a vessel: "
         "1) Delegate to nav_integrity_agent first if navigation data hasn't already been checked. "
         "2) Then gather context from crew_readiness_agent, fleet_pattern_agent, and "

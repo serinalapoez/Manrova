@@ -5,7 +5,7 @@ import pytest
 from core.domain.models import Severity, IncidentState
 from core.domain.state_machine import assert_valid_transition, InvalidTransitionError
 from core.risk.fusion import fuse_risk
-from conductor.fleet_conductor.conductor import FleetConductor
+from oow.officer_of_the_watch import OfficerOfTheWatch
 from data.demo.fleet_data import HERO_TELEMETRY, CREW_RECORD, COMPLIANCE_RECORD, NEAR_MISS_REPORTS
 
 
@@ -42,17 +42,17 @@ def test_low_risk_stays_quiet():
 
 
 def test_full_incident_workflow_reaches_resolution():
-    conductor = FleetConductor()
+    oow = OfficerOfTheWatch()
     fleet_context = {
         "crew_record": CREW_RECORD,
         "near_miss_reports": NEAR_MISS_REPORTS,
         "compliance_record": COMPLIANCE_RECORD,
     }
-    incident = conductor.handle_telemetry(HERO_TELEMETRY, fleet_context)
+    incident = oow.handle_telemetry(HERO_TELEMETRY, fleet_context)
     assert incident is not None
     assert incident.state in (IncidentState.AWAITING_APPROVAL, IncidentState.EXECUTING)
 
-    conductor.approve_and_execute(incident)
+    oow.approve_and_execute(incident)
     assert incident.resolved is True
     assert incident.state == IncidentState.NORMAL
     assert all(a.executed for a in incident.actions if a.requires_approval)

@@ -1,10 +1,13 @@
 """
-Fleet Conductor
-=================
-The product centerpiece. Receives a Nav Integrity event, decides what
-additional context is needed, requests it from the other specialists,
-fuses risk, prepares actions, and drives the incident through its state
-machine - stopping for human approval on consequential external actions.
+Officer of the Watch (OOW)
+============================
+The product centerpiece. Named for the real maritime role: the officer who
+continuously monitors the ship, correlates information from multiple
+sources, and escalates to the Master when a situation calls for a human
+decision. Receives a Nav Integrity event, decides what additional context
+is needed, requests it from the other specialists, fuses risk, prepares
+actions, and drives the incident through its state machine - stopping for
+human approval on consequential external actions.
 """
 
 from core.domain.models import (
@@ -18,21 +21,21 @@ from agents.fleet_pattern.agent import FleetPatternAgent
 from agents.compliance_readiness.agent import ComplianceReadinessAgent
 
 
-class FleetConductor:
+class OfficerOfTheWatch:
     def __init__(self):
         self.nav_agent = NavIntegrityAgent()
         self.crew_agent = CrewReadinessAgent()
         self.pattern_agent = FleetPatternAgent()
         self.compliance_agent = ComplianceReadinessAgent()
 
-    def _move(self, incident: Incident, target: IncidentState, actor: str = "Conductor"):
+    def _move(self, incident: Incident, target: IncidentState, actor: str = "Officer of the Watch"):
         assert_valid_transition(incident.state, target)
         incident.transition(target, actor)
 
     def handle_telemetry(self, telemetry, fleet_context: dict) -> Incident | None:
         """Entry point: a telemetry tick arrives. Returns an Incident if the
         Nav Integrity Agent finds something worth investigating, else None
-        (the Conductor stays silent - this is the default, expected path)."""
+        (the Officer of the Watch stays silent - this is the default, expected path)."""
 
         nav_event = self.nav_agent.analyze(telemetry)
         if nav_event is None:
@@ -72,17 +75,17 @@ class FleetConductor:
             base_confidence=nav_event.confidence,
         )
         incident.risk = risk
-        incident.log("Conductor", f"Overall severity assessed: {risk.overall_severity.value} ({risk.confidence:.0%} confidence)")
+        incident.log("Officer of the Watch", f"Overall severity assessed: {risk.overall_severity.value} ({risk.confidence:.0%} confidence)")
 
         if risk.overall_severity in (Severity.NONE, Severity.LOW):
             self._move(incident, IncidentState.MONITOR)
-            incident.log("Conductor", "Risk below incident threshold - continuing to monitor.")
+            incident.log("Officer of the Watch", "Risk below incident threshold - continuing to monitor.")
             return incident
 
         # --- Incident mode ---
         self._move(incident, IncidentState.INCIDENT_MODE)
         self._move(incident, IncidentState.INVESTIGATION)
-        incident.log("Conductor", "Evidence collected across all specialists.")
+        incident.log("Officer of the Watch", "Evidence collected across all specialists.")
 
         self._move(incident, IncidentState.ACTION_PLAN)
         actions = self._prepare_actions(incident)
@@ -91,7 +94,7 @@ class FleetConductor:
         needs_approval = any(a.requires_approval for a in actions)
         if needs_approval:
             self._move(incident, IncidentState.AWAITING_APPROVAL)
-            incident.log("Conductor", f"{sum(a.requires_approval for a in actions)} action(s) require human approval.")
+            incident.log("Officer of the Watch", f"{sum(a.requires_approval for a in actions)} action(s) require human approval.")
         else:
             self._move(incident, IncidentState.EXECUTING)
 
@@ -108,7 +111,7 @@ class FleetConductor:
         if incident.risk.overall_severity == Severity.CRITICAL:
             actions.append(PreparedAction(new_id("act"), "external", "Notify Class Society", requires_approval=True))
         for a in actions:
-            incident.log("Conductor", f"Prepared action: {a.description} ({'approval required' if a.requires_approval else 'internal'})")
+            incident.log("Officer of the Watch", f"Prepared action: {a.description} ({'approval required' if a.requires_approval else 'internal'})")
         return actions
 
     def approve_and_execute(self, incident: Incident, approver: str = "DPA") -> None:
@@ -122,13 +125,13 @@ class FleetConductor:
         incident.transition(IncidentState.EXECUTING, actor=approver)
         for a in incident.actions:
             a.executed = True
-            incident.log("Conductor", f"Executed: {a.description}")
+            incident.log("Officer of the Watch", f"Executed: {a.description}")
 
         self._move(incident, IncidentState.TRACKING)
         self._move(incident, IncidentState.RESOLUTION)
         incident.resolved = True
-        incident.log("Conductor", "Incident marked resolved.")
+        incident.log("Officer of the Watch", "Incident marked resolved.")
 
         self._move(incident, IncidentState.LEARNING)
-        incident.log("Conductor", "Outcome stored in fleet memory for future correlation.")
+        incident.log("Officer of the Watch", "Outcome stored in fleet memory for future correlation.")
         self._move(incident, IncidentState.NORMAL)

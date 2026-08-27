@@ -8,7 +8,7 @@ implementation lives, wrapping the same shared core.
 - `tools.py` - plain functions ADK calls as tools, each wrapping one
   deterministic core agent. Math/scoring never happens in the LLM layer.
 - `agents.py` - four specialist `Agent`s (one tool each) plus `root_agent`
-  ("fleet_conductor"), an orchestrating agent with all four as `sub_agents`.
+  ("officer_of_the_watch"), an orchestrating agent with all four as `sub_agents`.
 - `agent.py` / `__init__.py` - re-exports so `adk run` / `adk web` find
   `root_agent` the way the ADK CLI expects.
 - `main.py` - FastAPI service for Cloud Run: `/telemetry` runs the
@@ -30,7 +30,7 @@ adk run providers/google/adk        # terminal chat
 ```
 
 Try: *"MV Atlas is reporting GPS at 1.290,103.850 and radar at
-1.305,103.862, gyro 178.4, speed 12.1 knots - investigate."* The Conductor
+1.305,103.862, gyro 178.4, speed 12.1 knots - investigate."* The Officer of the Watch
 should delegate to nav_integrity_agent, then the other three specialists,
 then call `fuse_fleet_risk`, and tell you human approval is needed before
 any notification goes out.
@@ -61,14 +61,14 @@ accordingly - the rest of the code doesn't need to change.
 
 1. Wrap each specialist agent as a Google ADK agent, calling Gemini 3.5+
    via the Gemini API or Vertex AI for the reasoning step.
-2. Wrap `FleetConductor` as the top-level ADK orchestrating agent.
+2. Wrap `OfficerOfTheWatch` as the top-level ADK orchestrating agent.
 3. Deploy on Cloud Run; use Pub/Sub for event ingestion instead of the
    direct function call `handle_telemetry()` uses in the demo.
 4. Persist incidents/fleet memory in Firestore or Cloud SQL instead of
    in-memory `Incident` objects.
 5. Fortified Enterprise Fleet track requirements, mapped to this repo:
    - Agent Registry -> `registry/` (Firestore-backed list of the 4 agents +
-     Conductor, versioned, with owner/permissions metadata)
+     Officer of the Watch, versioned, with owner/permissions metadata)
    - Agent Runtime -> Cloud Run services running the ADK agents
    - Memory Bank -> Firestore/Cloud SQL persistence layer
    - Agent Identity -> IAM service identities per agent, least-privilege
@@ -83,7 +83,7 @@ accordingly - the rest of the code doesn't need to change.
 - [x] ADK Agent wrapper for CrewReadinessAgent
 - [x] ADK Agent wrapper for FleetPatternAgent
 - [x] ADK Agent wrapper for ComplianceReadinessAgent
-- [x] ADK orchestrating agent for FleetConductor (`root_agent` in `agents.py`)
+- [x] ADK orchestrating agent for Officer of the Watch (`root_agent` in `agents.py`)
 - [x] FastAPI service + Dockerfile for Cloud Run (`main.py`) - not yet deployed
 - [ ] Actually run `adk web` locally and confirm the model follows the
       "consult all four before fusing risk" instruction reliably

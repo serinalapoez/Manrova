@@ -208,7 +208,7 @@
       </svg>
       MANROVA
     </h1>
-    <p class="tagline">Four watchstanders keep the deck. The Conductor holds the helm.</p>
+    <p class="tagline">Four watchstanders keep the deck. The Officer of the Watch <span class="hull-tag" style="font-family:'IBM Plex Mono',monospace; font-style: normal; font-size: 10px;">OOW</span> holds the helm.</p>
   </div>
 
   <div class="fleet-ledger">
@@ -232,7 +232,7 @@
       <circle cx="24" cy="24" r="20" stroke="#1e3358" stroke-width="3"/>
       <path d="M24 4 A20 20 0 0 1 44 24" stroke="#c9a961" stroke-width="3" stroke-linecap="round"/>
     </svg>
-    The Conductor is gathering the watch&hellip;
+    The Officer of the Watch is gathering the watch&hellip;
   </div>
 
   <div id="results"></div>
@@ -311,7 +311,7 @@ async function launchInvestigation() {
     loading.style.display = 'none';
     btn.disabled = false;
     btn.textContent = 'Retry Investigation';
-    results.innerHTML = '<div class="log-entry">Signal lost reaching the Conductor. Try again.</div>';
+    results.innerHTML = '<div class="log-entry">Signal lost reaching the Officer of the Watch. Try again.</div>';
     results.style.display = 'block';
   }
 }

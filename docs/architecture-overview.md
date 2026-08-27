@@ -10,11 +10,11 @@ flowchart TB
 
     Sensors --> NavAgent["Nav Integrity Agent<br/>(deterministic anomaly check)"]
 
-    NavAgent -->|anomaly found| Conductor["Fleet Conductor<br/>(orchestrator)"]
+    NavAgent -->|anomaly found| OOW["Officer of the Watch<br/>(orchestrator)"]
 
-    Conductor --> CrewAgent["Crew Readiness Agent"]
-    Conductor --> PatternAgent["Fleet Pattern Agent"]
-    Conductor --> ComplianceAgent["Compliance Readiness Agent"]
+    OOW --> CrewAgent["Crew Readiness Agent"]
+    OOW --> PatternAgent["Fleet Pattern Agent"]
+    OOW --> ComplianceAgent["Compliance Readiness Agent"]
 
     CrewAgent --> Fusion["Risk Fusion<br/>(deterministic, weighted)"]
     PatternAgent --> Fusion
@@ -35,14 +35,14 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    Core["Shared Core<br/>core/ · agents/ · conductor/ · data/"]
+    Core["Shared Core<br/>core/ · agents/ · oow/ · data/"]
     Core --> AWS["AWS Provider<br/>Strands Agents SDK<br/>(providers/aws/strands/)"]
     Core --> Google["Google Provider<br/>Gemini + ADK + Cloud Run<br/>(providers/google/adk/)"]
     AWS --> Bedrock["Amazon Bedrock<br/>+ AgentCore (optional)"]
     Google --> CloudRun["Google Cloud Run"]
 ```
 
-`core/`, `agents/`, `conductor/` and `data/` are the **shared product core** -
+`core/`, `agents/`, `oow/` and `data/` are the **shared product core** -
 identical business logic for both hackathon submissions. Only
 `providers/aws/` and `providers/google/` differ.
 
@@ -51,7 +51,7 @@ identical business logic for both hackathon submissions. Only
 ```
 MANROVA
    |
-Fleet Conductor
+Officer of the Watch (OOW)
    |
    +------------------+------------------+------------------+
    |                  |                  |                  |
@@ -77,7 +77,7 @@ Nav Integrity     Crew Readiness     Fleet Pattern      Compliance
 ## Layering
 
 ```
-MANROVA CORE  (core/, agents/, conductor/, data/)
+MANROVA CORE  (core/, agents/, oow/, data/)
    |
 Provider Interface
    |
@@ -88,7 +88,7 @@ AWS Implementation                                    Google Implementation
 Strands Agents SDK, AgentCore                         Gemini 3.5+, Google ADK, Google Cloud
 ```
 
-`core/`, `agents/`, `conductor/` and `data/` are the **shared product core** -
+`core/`, `agents/`, `oow/` and `data/` are the **shared product core** -
 identical business logic for both hackathon submissions. Only `providers/aws/`
 and `providers/google/` differ.
 
@@ -108,7 +108,7 @@ never recomputes the numbers itself.
 
 Each specialist agent has a "reasoning seam" comment marking where a real
 model call replaces the current deterministic evidence list with an
-LLM-refined narrative. The Conductor's `handle_telemetry` / `approve_and_execute`
+LLM-refined narrative. The Officer of the Watch's `handle_telemetry` / `approve_and_execute`
 flow doesn't change per provider - only how each agent's `.analyze()` /
 `.assess()` method is implemented does.
 
