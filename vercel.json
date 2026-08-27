@@ -2,10 +2,16 @@
   "version": 2,
   "builds": [
     { "src": "api/investigate.py", "use": "@vercel/python" },
+    { "src": "api/company_register.py", "use": "@vercel/python" },
+    { "src": "api/company_lookup.py", "use": "@vercel/python" },
+    { "src": "api/vessel_register.py", "use": "@vercel/python" },
     { "src": "public/**", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/investigate", "dest": "api/investigate.py" },
+    { "src": "/api/company_register", "dest": "api/company_register.py" },
+    { "src": "/api/company_lookup", "dest": "api/company_lookup.py" },
+    { "src": "/api/vessel_register", "dest": "api/vessel_register.py" },
     { "src": "/", "dest": "public/index.html" },
     { "src": "/(.*)", "dest": "public/$1" }
   ]
