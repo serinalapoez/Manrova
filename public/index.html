@@ -3,164 +3,243 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manrova - Fleet Command Center</title>
+<title>Manrova &mdash; Fleet Command Bridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0b1220;
-    --panel: #121b2e;
-    --panel-2: #17223a;
-    --border: #24314f;
-    --text: #e7ecf5;
-    --muted: #8fa0bf;
-    --accent: #3ea6ff;
-    --none: #4b5b7a;
-    --low: #4caf7d;
-    --medium: #e8b84b;
-    --high: #e8823f;
-    --critical: #e35555;
+    --navy-deep: #060d1a;
+    --navy: #0a1628;
+    --navy-panel: #0f1e35;
+    --navy-panel-2: #142a49;
+    --chart-line: rgba(201,169,97,0.08);
+    --border: #1e3358;
+    --brass: #c9a961;
+    --brass-bright: #e0c07f;
+    --parchment: #ece4d3;
+    --ink: #dbe4f2;
+    --muted: #7f93b8;
+    --sea-green: #4fae8a;
+    --amber: #d9a441;
+    --rust: #d17a45;
+    --alarm: #d4574f;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    padding: 24px 16px 64px;
+    background:
+      linear-gradient(var(--chart-line) 1px, transparent 1px) 0 0 / 100% 42px,
+      linear-gradient(90deg, var(--chart-line) 1px, transparent 1px) 0 0 / 42px 100%,
+      radial-gradient(ellipse at 20% -10%, #0d1d38 0%, var(--navy-deep) 60%);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 0 0 64px;
+    min-height: 100vh;
   }
-  .wrap { max-width: 880px; margin: 0 auto; }
-  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
-  h1 { font-size: 22px; margin: 0; letter-spacing: 0.3px; }
-  .tagline { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
-  .fleet-summary {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 18px; }
+
+  .bridge-header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 0 20px;
+    margin-bottom: 28px;
+    position: relative;
   }
-  .stat {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-    text-align: center;
-  }
-  .stat .num { font-size: 24px; font-weight: 700; }
-  .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-    margin-bottom: 16px;
-  }
-  .vessel-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .vessel-name { font-weight: 600; font-size: 16px; }
-  .vessel-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .dot.normal { background: var(--low); }
-  button.launch {
-    background: var(--accent);
-    color: #06111f;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  button.launch:disabled { opacity: 0.6; cursor: default; }
-  button.launch:active { transform: scale(0.98); }
-  #results { display: none; }
-  .sev-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    color: var(--brass);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    margin: 0 0 6px;
   }
-  .sev-none, .sev-low { background: rgba(76,175,125,0.15); color: var(--low); }
-  .sev-medium { background: rgba(232,184,75,0.15); color: var(--medium); }
-  .sev-high { background: rgba(232,130,63,0.15); color: var(--high); }
-  .sev-critical { background: rgba(227,85,85,0.18); color: var(--critical); }
-  .risk-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin: 14px 0;
-  }
-  .risk-item { background: var(--panel-2); border-radius: 8px; padding: 10px 12px; }
-  .risk-item .k { font-size: 11px; color: var(--muted); text-transform: uppercase; }
-  .narrative {
-    line-height: 1.55;
-    font-size: 14.5px;
-    background: var(--panel-2);
-    border-left: 3px solid var(--accent);
-    padding: 12px 14px;
-    border-radius: 6px;
-    margin: 14px 0;
-  }
-  .narrative .src { display: block; margin-top: 8px; font-size: 11px; color: var(--muted); }
-  .action-item {
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 42px;
+    letter-spacing: 1px;
+    margin: 0;
+    color: var(--parchment);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background: var(--panel-2);
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    font-size: 13.5px;
+    gap: 14px;
   }
-  .action-item .status { color: var(--muted); font-size: 11px; }
-  .timeline { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
-  .timeline .t-row { display: flex; gap: 10px; padding: 4px 0; border-top: 1px solid var(--border); }
-  .timeline .t-row:first-child { border-top: none; }
-  .timeline .t-actor { color: var(--text); min-width: 140px; font-weight: 600; }
-  .loading { text-align: center; padding: 30px 0; color: var(--muted); font-size: 14px; }
-  .spinner {
-    width: 24px; height: 24px; border-radius: 50%;
-    border: 3px solid var(--border); border-top-color: var(--accent);
-    margin: 0 auto 12px; animation: spin 0.8s linear infinite;
+  .tagline {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 17px;
+    color: var(--muted);
+    margin: 8px 0 0;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  footer { text-align: center; color: var(--muted); font-size: 11.5px; margin-top: 32px; }
+  .compass { width: 34px; height: 34px; flex-shrink: 0; opacity: 0.9; }
+
+  .fleet-ledger {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 26px;
+  }
+  .ledger-cell { background: var(--navy-panel); padding: 16px 12px; text-align: center; }
+  .ledger-cell .num { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 30px; line-height: 1; }
+  .ledger-cell .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 5px;
+  }
+
+  .manifest {
+    background: var(--navy-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 22px;
+    margin-bottom: 22px;
+    position: relative;
+  }
+  .manifest::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--brass); border-radius: 6px 0 0 6px;
+  }
+  .manifest-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .vessel-name { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 24px; color: var(--parchment); }
+  .hull-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--navy-deep); background: var(--brass);
+    padding: 2px 7px; border-radius: 3px; margin-left: 8px; letter-spacing: 0.5px; vertical-align: middle;
+  }
+  .vessel-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 7px; background: var(--sea-green); }
+
+  button.launch {
+    background: var(--brass); color: var(--navy-deep); border: none;
+    padding: 12px 22px; border-radius: 4px;
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.3px;
+    cursor: pointer; transition: background 0.15s ease, transform 0.05s ease; white-space: nowrap;
+  }
+  button.launch:hover:not(:disabled) { background: var(--brass-bright); }
+  button.launch:disabled { opacity: 0.55; cursor: default; }
+  button.launch:active:not(:disabled) { transform: scale(0.98); }
+
+  .loading { text-align: center; padding: 34px 0; color: var(--muted); font-size: 14px; }
+  .compass-spin { width: 30px; height: 30px; margin: 0 auto 14px; animation: sweep 1.1s linear infinite; }
+  @keyframes sweep { to { transform: rotate(360deg); } }
+
+  #results { display: none; }
+  .log-entry {
+    background: var(--navy-panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 22px 24px; margin-bottom: 18px;
+  }
+  .log-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+  }
+  .log-head h2 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 700; margin: 0; color: var(--parchment); }
+  .sev-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    display: inline-block; padding: 3px 10px; border-radius: 3px;
+    font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px;
+    border: 1px solid currentColor;
+  }
+  .sev-none, .sev-low { color: var(--sea-green); }
+  .sev-medium { color: var(--amber); }
+  .sev-high { color: var(--rust); }
+  .sev-critical { color: var(--alarm); }
+
+  .narrative {
+    font-family: 'Cormorant Garamond', serif; font-size: 18px; line-height: 1.6; color: var(--ink);
+    border-left: 2px solid var(--brass); padding: 4px 0 4px 16px; margin: 0 0 16px;
+  }
+  .narrative .src {
+    display: block; margin-top: 10px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted);
+    letter-spacing: 0.4px; text-transform: uppercase;
+  }
+
+  .risk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 16px 0; }
+  .risk-item {
+    background: var(--navy-panel-2); border-radius: 4px; padding: 10px 13px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .risk-item .k {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--brass);
+    text-transform: uppercase; letter-spacing: 1.4px; margin: 20px 0 9px;
+  }
+  .action-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--navy-panel-2); border-radius: 4px; padding: 10px 13px; margin-bottom: 7px; font-size: 13.5px;
+  }
+  .action-item .status {
+    font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .logbook { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+  .logbook .t-row { display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); }
+  .logbook .t-row:first-child { border-top: none; }
+  .logbook .t-actor { color: var(--brass); min-width: 150px; flex-shrink: 0; }
+
+  footer {
+    text-align: center; color: var(--muted); font-size: 11.5px;
+    margin-top: 36px; font-family: 'IBM Plex Mono', monospace;
+  }
+  footer a { color: var(--brass); text-decoration: none; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>MANROVA</h1>
-    <span style="color: var(--muted); font-size: 12px;">24 vessels</span>
-  </header>
-  <p class="tagline">Four agents watch. One Conductor acts. The fleet learns.</p>
 
-  <div class="fleet-summary">
-    <div class="stat"><div class="num" style="color: var(--low);">21</div><div class="label">Normal</div></div>
-    <div class="stat"><div class="num" style="color: var(--medium);">2</div><div class="label">Monitoring</div></div>
-    <div class="stat"><div class="num" style="color: var(--critical);">1</div><div class="label">Incident</div></div>
+  <div class="bridge-header">
+    <p class="eyebrow">Fleet Command Bridge</p>
+    <h1>
+      <svg class="compass" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="21" stroke="#c9a961" stroke-width="1.4"/>
+        <circle cx="24" cy="24" r="1.6" fill="#c9a961"/>
+        <path d="M24 6 L27 22 L24 24 L21 22 Z" fill="#c9a961"/>
+        <path d="M24 42 L21 26 L24 24 L27 26 Z" fill="#e0c07f" opacity="0.55"/>
+        <path d="M6 24 L22 21 L24 24 L22 27 Z" fill="#e0c07f" opacity="0.35"/>
+        <path d="M42 24 L26 27 L24 24 L26 21 Z" fill="#e0c07f" opacity="0.35"/>
+      </svg>
+      MANROVA
+    </h1>
+    <p class="tagline">Four watchstanders keep the deck. The Conductor holds the helm.</p>
   </div>
 
-  <div class="card">
-    <div class="vessel-row">
+  <div class="fleet-ledger">
+    <div class="ledger-cell"><div class="num" style="color: var(--sea-green);">21</div><div class="label">Normal</div></div>
+    <div class="ledger-cell"><div class="num" style="color: var(--amber);">2</div><div class="label">Monitoring</div></div>
+    <div class="ledger-cell"><div class="num" style="color: var(--alarm);">1</div><div class="label">Incident</div></div>
+  </div>
+
+  <div class="manifest">
+    <div class="manifest-row">
       <div>
-        <div class="vessel-name"><span class="dot normal"></span>MV Atlas <span style="color: var(--muted); font-weight: 400;">(V-001)</span></div>
-        <div class="vessel-sub">Bulk carrier &middot; last telemetry tick: GPS/radar disagreement detected</div>
+        <div class="vessel-name"><span class="status-dot"></span>MV Atlas<span class="hull-tag">V-001</span></div>
+        <div class="vessel-sub">Bulk carrier &middot; Singapore Strait &middot; GPS/radar disagreement flagged on last telemetry tick</div>
       </div>
       <button class="launch" id="launchBtn" onclick="launchInvestigation()">Launch Investigation</button>
     </div>
   </div>
 
   <div id="loading" class="loading" style="display:none;">
-    <div class="spinner"></div>
-    Fleet Conductor is gathering context from all four specialists&hellip;
+    <svg class="compass-spin" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="20" stroke="#1e3358" stroke-width="3"/>
+      <path d="M24 4 A20 20 0 0 1 44 24" stroke="#c9a961" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    The Conductor is gathering the watch&hellip;
   </div>
 
   <div id="results"></div>
 
   <footer>
     Synthetic demo data only &middot; no connection to real vessel operational systems &middot;
-    <a href="https://github.com/serinalapoez/Manrova" style="color: var(--accent);">View source</a>
+    <a href="https://github.com/serinalapoez/Manrova">View source</a>
   </footer>
 </div>
 
@@ -184,7 +263,7 @@ async function launchInvestigation() {
     btn.textContent = 'Re-run Investigation';
 
     if (!data.incident_id) {
-      results.innerHTML = '<div class="card">' + (data.message || 'No anomaly detected.') + '</div>';
+      results.innerHTML = '<div class="log-entry">' + (data.message || 'No anomaly detected.') + '</div>';
       results.style.display = 'block';
       return;
     }
@@ -192,14 +271,14 @@ async function launchInvestigation() {
     const sev = data.risk.overall;
     const pct = Math.round(data.risk.confidence * 100);
 
-    let html = '<div class="card">';
-    html += '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">';
-    html += '<h2 style="margin:0; font-size:17px;">Incident: ' + data.vessel_id + '</h2>';
+    let html = '<div class="log-entry">';
+    html += '<div class="log-head">';
+    html += '<h2>MV Atlas &mdash; Investigation Report</h2>';
     html += '<span class="sev-badge sev-' + sev + '">' + sev + ' &middot; ' + pct + '%</span>';
     html += '</div>';
 
     html += '<div class="narrative">' + escapeHtml(data.narrative) +
-            '<span class="src">Source: ' + (data.narrative_source === 'gemini' ? 'Gemini narrative' : 'auto-generated summary') + '</span></div>';
+            '<span class="src">' + (data.narrative_source === 'gemini' ? 'Gemini narrative' : 'Auto-generated summary') + '</span></div>';
 
     html += '<div class="risk-grid">';
     html += riskBox('Navigation', data.risk.nav);
@@ -208,17 +287,17 @@ async function launchInvestigation() {
     html += riskBox('Compliance', data.risk.compliance);
     html += '</div>';
 
+    html += '<div class="section-label">Pending Human Approval</div>';
     if (data.pending_actions.length > 0) {
-      html += '<h3 style="font-size:13px; color:var(--muted); text-transform:uppercase; margin:16px 0 8px;">Pending Human Approval</h3>';
       data.pending_actions.forEach(a => {
         html += '<div class="action-item"><span>' + escapeHtml(a.description) + '</span><span class="status">awaiting approval</span></div>';
       });
     } else {
-      html += '<div class="action-item"><span>No external notification required</span><span class="status">monitoring continues</span></div>';
+      html += '<div class="action-item"><span>No external notification required</span><span class="status">monitoring</span></div>';
     }
 
-    html += '<h3 style="font-size:13px; color:var(--muted); text-transform:uppercase; margin:16px 0 4px;">Timeline</h3>';
-    html += '<div class="timeline">';
+    html += '<div class="section-label">Ship\'s Log</div>';
+    html += '<div class="logbook">';
     data.timeline.forEach(t => {
       html += '<div class="t-row"><span class="t-actor">' + escapeHtml(t.actor) + '</span><span>' + escapeHtml(t.description) + '</span></div>';
     });
@@ -227,17 +306,18 @@ async function launchInvestigation() {
     html += '</div>';
     results.innerHTML = html;
     results.style.display = 'block';
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     loading.style.display = 'none';
     btn.disabled = false;
     btn.textContent = 'Retry Investigation';
-    results.innerHTML = '<div class="card">Something went wrong reaching the Fleet Conductor. Please try again.</div>';
+    results.innerHTML = '<div class="log-entry">Signal lost reaching the Conductor. Try again.</div>';
     results.style.display = 'block';
   }
 }
 
 function riskBox(label, value) {
-  return '<div class="risk-item"><div class="k">' + label + '</div>' +
+  return '<div class="risk-item"><span class="k">' + label + '</span>' +
          '<span class="sev-badge sev-' + value + '">' + value + '</span></div>';
 }
 
