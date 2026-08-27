@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manrova - Fleet Command Center</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #121b2e;
+    --panel-2: #17223a;
+    --border: #24314f;
+    --text: #e7ecf5;
+    --muted: #8fa0bf;
+    --accent: #3ea6ff;
+    --none: #4b5b7a;
+    --low: #4caf7d;
+    --medium: #e8b84b;
+    --high: #e8823f;
+    --critical: #e35555;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px 16px 64px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: 0.3px; }
+  .tagline { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
+  .fleet-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+  .stat .num { font-size: 24px; font-weight: 700; }
+  .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .vessel-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .vessel-name { font-weight: 600; font-size: 16px; }
+  .vessel-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot.normal { background: var(--low); }
+  button.launch {
+    background: var(--accent);
+    color: #06111f;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button.launch:disabled { opacity: 0.6; cursor: default; }
+  button.launch:active { transform: scale(0.98); }
+  #results { display: none; }
+  .sev-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .sev-none, .sev-low { background: rgba(76,175,125,0.15); color: var(--low); }
+  .sev-medium { background: rgba(232,184,75,0.15); color: var(--medium); }
+  .sev-high { background: rgba(232,130,63,0.15); color: var(--high); }
+  .sev-critical { background: rgba(227,85,85,0.18); color: var(--critical); }
+  .risk-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .risk-item { background: var(--panel-2); border-radius: 8px; padding: 10px 12px; }
+  .risk-item .k { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .narrative {
+    line-height: 1.55;
+    font-size: 14.5px;
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent);
+    padding: 12px 14px;
+    border-radius: 6px;
+    margin: 14px 0;
+  }
+  .narrative .src { display: block; margin-top: 8px; font-size: 11px; color: var(--muted); }
+  .action-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13.5px;
+  }
+  .action-item .status { color: var(--muted); font-size: 11px; }
+  .timeline { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  .timeline .t-row { display: flex; gap: 10px; padding: 4px 0; border-top: 1px solid var(--border); }
+  .timeline .t-row:first-child { border-top: none; }
+  .timeline .t-actor { color: var(--text); min-width: 140px; font-weight: 600; }
+  .loading { text-align: center; padding: 30px 0; color: var(--muted); font-size: 14px; }
+  .spinner {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--accent);
+    margin: 0 auto 12px; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer { text-align: center; color: var(--muted); font-size: 11.5px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>MANROVA</h1>
+    <span style="color: var(--muted); font-size: 12px;">24 vessels</span>
+  </header>
+  <p class="tagline">Four agents watch. One Conductor acts. The fleet learns.</p>
+
+  <div class="fleet-summary">
+    <div class="stat"><div class="num" style="color: var(--low);">21</div><div class="label">Normal</div></div>
+    <div class="stat"><div class="num" style="color: var(--medium);">2</div><div class="label">Monitoring</div></div>
+    <div class="stat"><div class="num" style="color: var(--critical);">1</div><div class="label">Incident</div></div>
+  </div>
+
+  <div class="card">
+    <div class="vessel-row">
+      <div>
+        <div class="vessel-name"><span class="dot normal"></span>MV Atlas <span style="color: var(--muted); font-weight: 400;">(V-001)</span></div>
+        <div class="vessel-sub">Bulk carrier &middot; last telemetry tick: GPS/radar disagreement detected</div>
+      </div>
+      <button class="launch" id="launchBtn" onclick="launchInvestigation()">Launch Investigation</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading" style="display:none;">
+    <div class="spinner"></div>
+    Fleet Conductor is gathering context from all four specialists&hellip;
+  </div>
+
+  <div id="results"></div>
+
+  <footer>
+    Synthetic demo data only &middot; no connection to real vessel operational systems &middot;
+    <a href="https://github.com/serinalapoez/Manrova" style="color: var(--accent);">View source</a>
+  </footer>
+</div>
+
+<script>
+async function launchInvestigation() {
+  const btn = document.getElementById('launchBtn');
+  const loading = document.getElementById('loading');
+  const results = document.getElementById('results');
+
+  btn.disabled = true;
+  btn.textContent = 'Investigating\u2026';
+  loading.style.display = 'block';
+  results.style.display = 'none';
+  results.innerHTML = '';
+
+  try {
+    const res = await fetch('/api/investigate', { method: 'POST' });
+    const data = await res.json();
+    loading.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Re-run Investigation';
+
+    if (!data.incident_id) {
+      results.innerHTML = '<div class="card">' + (data.message || 'No anomaly detected.') + '</div>';
+      results.style.display = 'block';
+      return;
+    }
+
+    const sev = data.risk.overall;
+    const pct = Math.round(data.risk.confidence * 100);
+
+    let html = '<div class="card">';
+    html += '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">';
+    html += '<h2 style="margin:0; font-size:17px;">Incident: ' + data.vessel_id + '</h2>';
+    html += '<span class="sev-badge sev-' + sev + '">' + sev + ' &middot; ' + pct + '%</span>';
+    html += '</div>';
+
+    html += '<div class="narrative">' + escapeHtml(data.narrative) +
+            '<span class="src">Source: ' + (data.narrative_source === 'gemini' ? 'Gemini narrative' : 'auto-generated summary') + '</span></div>';
+
+    html += '<div class="risk-grid">';
+    html += riskBox('Navigation', data.risk.nav);
+    html += riskBox('Crew Readiness', data.risk.crew);
+    html += riskBox('Fleet Pattern', data.risk.pattern);
+    html += riskBox('Compliance', data.risk.compliance);
+    html += '</div>';
+
+    if (data.pending_actions.length > 0) {
+      html += '<h3 style="font-size:13px; color:var(--muted); text-transform:uppercase; margin:16px 0 8px;">Pending Human Approval</h3>';
+      data.pending_actions.forEach(a => {
+        html += '<div class="action-item"><span>' + escapeHtml(a.description) + '</span><span class="status">awaiting approval</span></div>';
+      });
+    } else {
+      html += '<div class="action-item"><span>No external notification required</span><span class="status">monitoring continues</span></div>';
+    }
+
+    html += '<h3 style="font-size:13px; color:var(--muted); text-transform:uppercase; margin:16px 0 4px;">Timeline</h3>';
+    html += '<div class="timeline">';
+    data.timeline.forEach(t => {
+      html += '<div class="t-row"><span class="t-actor">' + escapeHtml(t.actor) + '</span><span>' + escapeHtml(t.description) + '</span></div>';
+    });
+    html += '</div>';
+
+    html += '</div>';
+    results.innerHTML = html;
+    results.style.display = 'block';
+  } catch (err) {
+    loading.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Retry Investigation';
+    results.innerHTML = '<div class="card">Something went wrong reaching the Fleet Conductor. Please try again.</div>';
+    results.style.display = 'block';
+  }
+}
+
+function riskBox(label, value) {
+  return '<div class="risk-item"><div class="k">' + label + '</div>' +
+         '<span class="sev-badge sev-' + value + '">' + value + '</span></div>';
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
