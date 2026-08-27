@@ -190,6 +190,37 @@
     margin-top: 36px; font-family: 'IBM Plex Mono', monospace;
   }
   footer a { color: var(--brass); text-decoration: none; }
+
+  /* --- Tabs / My Fleet --- */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 8px 16px; border-radius: 4px; font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .tab-btn.active { background: var(--navy-panel-2); color: var(--brass); border-color: var(--brass); }
+  .field-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 5px;
+  }
+  input.field, select.field {
+    width: 100%; background: var(--navy-panel-2); border: 1px solid var(--border);
+    color: var(--ink); padding: 9px 11px; border-radius: 4px; font-family: 'Inter', sans-serif;
+    font-size: 13.5px; margin-bottom: 12px;
+  }
+  input.field:focus, select.field:focus { outline: none; border-color: var(--brass); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .access-code-box {
+    background: var(--navy-panel-2); border: 1px dashed var(--brass);
+    border-radius: 4px; padding: 14px; margin-bottom: 16px; text-align: center;
+  }
+  .access-code-box .code {
+    font-family: 'IBM Plex Mono', monospace; font-size: 20px; color: var(--brass-bright);
+    letter-spacing: 2px; margin: 6px 0;
+  }
+  .vessel-card { background: var(--navy-panel-2); border-radius: 6px; padding: 16px; margin-bottom: 14px; }
+  .vessel-card h4 { font-family: 'Cormorant Garamond', serif; font-size: 18px; margin: 0 0 10px; color: var(--parchment); }
+  .small-note { font-size: 12px; color: var(--muted); margin: 6px 0 14px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -217,13 +248,54 @@
     <div class="ledger-cell"><div class="num" style="color: var(--alarm);">1</div><div class="label">Incident</div></div>
   </div>
 
-  <div class="manifest">
-    <div class="manifest-row">
-      <div>
-        <div class="vessel-name"><span class="status-dot"></span>MV Atlas<span class="hull-tag">V-001</span></div>
-        <div class="vessel-sub">Bulk carrier &middot; Singapore Strait &middot; GPS/radar disagreement flagged on last telemetry tick</div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabDemo" onclick="switchTab('demo')">Demo Vessel</button>
+    <button class="tab-btn" id="tabFleet" onclick="switchTab('fleet')">My Fleet</button>
+  </div>
+
+  <div id="demoView">
+    <div class="manifest">
+      <div class="manifest-row">
+        <div>
+          <div class="vessel-name"><span class="status-dot"></span>MV Atlas<span class="hull-tag">V-001</span></div>
+          <div class="vessel-sub">Bulk carrier &middot; Singapore Strait &middot; GPS/radar disagreement flagged on last telemetry tick</div>
+        </div>
+        <button class="launch" id="launchBtn" onclick="launchInvestigation()">Launch Investigation</button>
       </div>
-      <button class="launch" id="launchBtn" onclick="launchInvestigation()">Launch Investigation</button>
+    </div>
+  </div>
+
+  <div id="fleetView" style="display:none;">
+    <div id="fleetAuthPanel" class="manifest">
+      <p class="small-note">Register your fleet to run real investigations on your own vessel data - no
+      demo numbers. No real vessel name is required; use an internal code if you prefer. You'll get a
+      private access code - save it, it's the only way back in.</p>
+      <label class="field-label">Company / Fleet Name (optional)</label>
+      <input class="field" id="regDisplayName" placeholder="e.g. Meridian Shipping, or leave blank">
+      <button class="launch" onclick="doRegisterCompany()">Register New Fleet</button>
+
+      <div style="margin: 22px 0 8px; border-top: 1px solid var(--border);"></div>
+      <label class="field-label" style="margin-top:14px; display:block;">Already registered? Enter your access code</label>
+      <input class="field" id="loginAccessCode" placeholder="XXXX-XXXX-XXXX" style="text-transform: uppercase;">
+      <button class="launch" onclick="doLoginCompany()">Enter Fleet</button>
+    </div>
+
+    <div id="fleetDashboard" style="display:none;">
+      <div class="access-code-box">
+        <div class="small-note" style="margin:0;">Your access code (save this)</div>
+        <div class="code" id="dashAccessCode"></div>
+      </div>
+
+      <div id="vesselList"></div>
+
+      <div class="manifest">
+        <h4 style="font-family:'Cormorant Garamond',serif; font-size:18px; margin:0 0 12px; color:var(--parchment);">Add a Vessel</h4>
+        <label class="field-label">Vessel Name or Code</label>
+        <input class="field" id="newVesselName" placeholder="e.g. Hull-Delta-4 (real name not required)">
+        <label class="field-label">Vessel Class</label>
+        <input class="field" id="newVesselClass" placeholder="e.g. bulk-carrier, tanker, container-ship">
+        <button class="launch" onclick="doAddVessel()">Add Vessel</button>
+      </div>
     </div>
   </div>
 
@@ -244,38 +316,184 @@
 </div>
 
 <script>
+let currentCompany = null;
+let currentVessels = [];
+
+function switchTab(tab) {
+  document.getElementById('tabDemo').classList.toggle('active', tab === 'demo');
+  document.getElementById('tabFleet').classList.toggle('active', tab === 'fleet');
+  document.getElementById('demoView').style.display = tab === 'demo' ? 'block' : 'none';
+  document.getElementById('fleetView').style.display = tab === 'fleet' ? 'block' : 'none';
+  document.getElementById('results').style.display = 'none';
+  if (tab === 'fleet') {
+    const saved = localStorage.getItem('manrova_access_code');
+    if (saved && !currentCompany) {
+      document.getElementById('loginAccessCode').value = saved;
+      doLoginCompany();
+    }
+  }
+}
+
+async function doRegisterCompany() {
+  const displayName = document.getElementById('regDisplayName').value.trim();
+  try {
+    const res = await fetch('/api/company_register', {
+      method: 'POST',
+      body: JSON.stringify({ display_name: displayName }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    currentCompany = data;
+    currentVessels = [];
+    localStorage.setItem('manrova_access_code', data.access_code);
+    showFleetDashboard();
+  } catch (err) {
+    alert('Could not register right now. Please try again.');
+  }
+}
+
+async function doLoginCompany() {
+  const code = document.getElementById('loginAccessCode').value.trim().toUpperCase();
+  if (!code) return;
+  try {
+    const res = await fetch('/api/company_lookup', {
+      method: 'POST',
+      body: JSON.stringify({ access_code: code }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    currentCompany = data.company;
+    currentVessels = data.vessels || [];
+    localStorage.setItem('manrova_access_code', currentCompany.access_code);
+    showFleetDashboard();
+  } catch (err) {
+    alert('Could not look up that access code right now.');
+  }
+}
+
+function showFleetDashboard() {
+  document.getElementById('fleetAuthPanel').style.display = 'none';
+  document.getElementById('fleetDashboard').style.display = 'block';
+  document.getElementById('dashAccessCode').textContent = currentCompany.access_code;
+  renderVesselList();
+}
+
+async function doAddVessel() {
+  const name = document.getElementById('newVesselName').value.trim();
+  const vesselClass = document.getElementById('newVesselClass').value.trim() || 'unspecified';
+  if (!name) { alert('Enter a vessel name or code.'); return; }
+  try {
+    const res = await fetch('/api/vessel_register', {
+      method: 'POST',
+      body: JSON.stringify({
+        company_id: currentCompany.company_id,
+        access_code: currentCompany.access_code,
+        name, vessel_class: vesselClass,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    currentVessels.push(data);
+    document.getElementById('newVesselName').value = '';
+    document.getElementById('newVesselClass').value = '';
+    renderVesselList();
+  } catch (err) {
+    alert('Could not add vessel right now.');
+  }
+}
+
+function renderVesselList() {
+  const container = document.getElementById('vesselList');
+  if (currentVessels.length === 0) {
+    container.innerHTML = '<p class="small-note">No vessels yet - add one below.</p>';
+    return;
+  }
+  container.innerHTML = currentVessels.map((v, i) => `
+    <div class="vessel-card">
+      <h4>${escapeHtml(v.name)} <span class="hull-tag">${escapeHtml(v.vessel_class)}</span></h4>
+      <div class="field-row">
+        <div><label class="field-label">GPS Lat</label><input class="field" id="v${i}_gps_lat" placeholder="1.290"></div>
+        <div><label class="field-label">GPS Lon</label><input class="field" id="v${i}_gps_lon" placeholder="103.850"></div>
+      </div>
+      <div class="field-row">
+        <div><label class="field-label">Radar Lat</label><input class="field" id="v${i}_radar_lat" placeholder="1.290"></div>
+        <div><label class="field-label">Radar Lon</label><input class="field" id="v${i}_radar_lon" placeholder="103.850"></div>
+      </div>
+      <div class="field-row">
+        <div><label class="field-label">Gyro Heading</label><input class="field" id="v${i}_gyro" placeholder="180"></div>
+        <div><label class="field-label">Speed (knots)</label><input class="field" id="v${i}_speed" placeholder="12"></div>
+      </div>
+      <div class="field-row">
+        <div><label class="field-label">Rest Hrs (last 24)</label><input class="field" id="v${i}_rest" placeholder="8"></div>
+        <div><label class="field-label">Continuous Duty Hrs</label><input class="field" id="v${i}_duty" placeholder="4"></div>
+      </div>
+      <button class="launch" onclick="launchCustomInvestigation(${i})">Launch Investigation</button>
+    </div>
+  `).join('');
+}
+
+async function launchCustomInvestigation(index) {
+  const v = currentVessels[index];
+  const g = (id) => document.getElementById(id).value;
+
+  const payload = {
+    vessel_id: v.name,
+    company_id: currentCompany.company_id,
+    telemetry: {
+      gps_lat: parseFloat(g(`v${index}_gps_lat`)) || 1.29,
+      gps_lon: parseFloat(g(`v${index}_gps_lon`)) || 103.85,
+      radar_lat: parseFloat(g(`v${index}_radar_lat`)) || 1.29,
+      radar_lon: parseFloat(g(`v${index}_radar_lon`)) || 103.85,
+      gyro_heading: parseFloat(g(`v${index}_gyro`)) || 180,
+      speed_knots: parseFloat(g(`v${index}_speed`)) || 12,
+    },
+    crew_record: {
+      rest_hours_last_24: parseFloat(g(`v${index}_rest`)) || 8,
+      continuous_duty_hours: parseFloat(g(`v${index}_duty`)) || 4,
+      unusual_rotation: false,
+    },
+  };
+
+  await runInvestigationRequest(payload);
+}
+
 async function launchInvestigation() {
-  const btn = document.getElementById('launchBtn');
+  await runInvestigationRequest({});
+}
+
+async function runInvestigationRequest(payload) {
+  const btn = payload.vessel_id ? null : document.getElementById('launchBtn');
   const loading = document.getElementById('loading');
   const results = document.getElementById('results');
 
-  btn.disabled = true;
-  btn.textContent = 'Investigating\u2026';
+  if (btn) { btn.disabled = true; btn.textContent = 'Investigating\u2026'; }
   loading.style.display = 'block';
   results.style.display = 'none';
   results.innerHTML = '';
 
   try {
-    const res = await fetch('/api/investigate', { method: 'POST' });
+    const res = await fetch('/api/investigate', { method: 'POST', body: JSON.stringify(payload) });
     const data = await res.json();
     loading.style.display = 'none';
-    btn.disabled = false;
-    btn.textContent = 'Re-run Investigation';
+    if (btn) { btn.disabled = false; btn.textContent = 'Re-run Investigation'; }
 
     if (!data.incident_id) {
       results.innerHTML = '<div class="log-entry">' + (data.message || 'No anomaly detected.') + '</div>';
       results.style.display = 'block';
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
 
     const sev = data.risk.overall;
     const pct = Math.round(data.risk.confidence * 100);
+    const dataSourceLabel = data.data_source === 'custom' ? 'Real submitted data' : 'Demo scenario';
 
     let html = '<div class="log-entry">';
     html += '<div class="log-head">';
-    html += '<h2>MV Atlas &mdash; Investigation Report</h2>';
+    html += '<h2>' + escapeHtml(data.vessel_id) + ' &mdash; Investigation Report</h2>';
     html += '<span class="sev-badge sev-' + sev + '">' + sev + ' &middot; ' + pct + '%</span>';
     html += '</div>';
+    html += '<p class="small-note" style="margin-top:-8px;">' + dataSourceLabel + '</p>';
 
     html += '<div class="narrative">' + escapeHtml(data.narrative) +
             '<span class="src">' + (data.narrative_source === 'gemini' ? 'Gemini narrative' : 'Auto-generated summary') + '</span></div>';
@@ -309,8 +527,7 @@ async function launchInvestigation() {
     results.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     loading.style.display = 'none';
-    btn.disabled = false;
-    btn.textContent = 'Retry Investigation';
+    if (btn) { btn.disabled = false; btn.textContent = 'Retry Investigation'; }
     results.innerHTML = '<div class="log-entry">Signal lost reaching the Officer of the Watch. Try again.</div>';
     results.style.display = 'block';
   }

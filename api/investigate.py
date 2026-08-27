@@ -3,26 +3,18 @@ Manrova Live Demo - Serverless Investigation Endpoint
 ========================================================
 Vercel Python function. Reuses the exact shared core (core/, agents/,
 oow/, data/demo/) - no duplicated business logic. Makes exactly ONE
-Gemini call to narrate the already-computed structured result, instead of
-the full multi-agent delegation chain (8-10+ calls) used in the ADK/Strands
-builds - this keeps the public demo fast, cheap, and resistant to free-tier
-rate limits.
+Gemini call to narrate the already-computed structured result.
+
+POST body is optional. If empty, runs the built-in MV Atlas demo scenario
+(so the site still works with a single click for a casual visitor). If a
+body is provided with real vessel data - as a registered tenant's vessel
+would send - it runs the exact same pipeline on that real data instead.
+Nothing about the OOW's logic changes between the two paths; only where
+the input numbers come from changes.
 
 Also demonstrates the Fortified Enterprise Fleet components live:
-- enterprise.guardrail screens the untrusted near-miss report text before
-  it reaches any agent or LLM call
-- enterprise.gateway routes and permission-checks the OOW's calls to each
-  specialist against the Agent Registry
-- enterprise.observability wraps the whole investigation, and each
-  specialist consultation, in trace spans
-- enterprise.memory persists the completed incident to Firestore (the
-  Memory Bank) so future investigations of the same vessel have history
-
-If the Gemini call fails for any reason (quota, network, deprecated model),
-falls back to a clean auto-generated narrative from the structured data so
-the live site never shows a judge a raw error. Same graceful-degradation
-principle applies to every enterprise component below - none of them can
-crash the demo.
+guardrail screening, gateway routing, observability tracing, and the
+Memory Bank - see the enterprise/ package for each.
 """
 
 from http.server import BaseHTTPRequestHandler
@@ -32,6 +24,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from core.domain.models import NavTelemetry
 from oow.officer_of_the_watch import OfficerOfTheWatch
 from data.demo.fleet_data import (
     HERO_TELEMETRY, CREW_RECORD, COMPLIANCE_RECORD, NEAR_MISS_REPORTS,
@@ -40,6 +33,7 @@ from enterprise.gateway.gateway import route_call, GatewayDeniedError
 from enterprise.guardrail.guardrail import screen_input, GuardrailViolation
 from enterprise.observability.observability import traced_span, get_trace_log
 from enterprise.memory.firestore_bank import record_incident, get_recent_incidents
+from enterprise.tenancy.tenancy import lookup_company
 
 FALLBACK_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.7-flash", "gemini-flash-latest"]
 
@@ -84,24 +78,20 @@ def _fallback_narrative(incident) -> str:
 
 
 def _narrate_with_gemini(incident) -> tuple[str, bool]:
-    """Returns (narrative_text, used_ai). Falls back cleanly on any failure."""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         return _fallback_narrative(incident), False
-
     try:
         from google import genai
         client = genai.Client(api_key=api_key)
         prompt = _build_prompt(incident)
-        last_error = None
         for model in FALLBACK_MODELS:
             try:
                 response = client.models.generate_content(model=model, contents=prompt)
                 text = getattr(response, "text", None)
                 if text:
                     return text.strip(), True
-            except Exception as e:  # noqa: BLE001 - any provider error, try next model
-                last_error = e
+            except Exception:  # noqa: BLE001
                 continue
         return _fallback_narrative(incident), False
     except Exception:
@@ -109,31 +99,68 @@ def _narrate_with_gemini(incident) -> tuple[str, bool]:
 
 
 def _screen_near_miss_reports(reports: list[dict]) -> list[dict]:
-    """Runs each report's free-text description through the guardrail
-    before it can reach any agent. Never lets a guardrail issue crash the
-    demo - a flagged report is dropped from this run rather than raising,
-    since the reports are synthetic demo data and a false positive here
-    shouldn't block the whole investigation."""
     safe_reports = []
     for report in reports:
         try:
-            safe_description = screen_input(report["description"], field_name="near_miss_description")
+            safe_description = screen_input(report.get("description", ""), field_name="near_miss_description")
             safe_reports.append({**report, "description": safe_description})
         except GuardrailViolation:
-            continue  # dropped - would be logged to a security queue in production
+            continue
     return safe_reports
 
 
-def _run_investigation() -> dict:
-    with traced_span("investigation.run", {"vessel_id": HERO_TELEMETRY.vessel_id}):
+def _build_telemetry_from_payload(payload: dict) -> NavTelemetry:
+    """Builds a NavTelemetry from a real submitted payload. Missing fields
+    fall back to the demo scenario's values, so a partial submission still
+    produces a sensible result rather than erroring."""
+    t = payload.get("telemetry", {})
+    vessel_id = str(payload.get("vessel_id") or payload.get("vessel_name") or HERO_TELEMETRY.vessel_id)[:80]
+
+    try:
+        vessel_id = screen_input(vessel_id, field_name="vessel_id")
+    except GuardrailViolation:
+        vessel_id = HERO_TELEMETRY.vessel_id  # a flagged custom ID falls back rather than 500ing
+
+    return NavTelemetry(
+        vessel_id=vessel_id,
+        gps_position=(
+            float(t.get("gps_lat", HERO_TELEMETRY.gps_position[0])),
+            float(t.get("gps_lon", HERO_TELEMETRY.gps_position[1])),
+        ),
+        radar_position=(
+            float(t.get("radar_lat", HERO_TELEMETRY.radar_position[0])),
+            float(t.get("radar_lon", HERO_TELEMETRY.radar_position[1])),
+        ),
+        gyro_heading=float(t.get("gyro_heading", HERO_TELEMETRY.gyro_heading)),
+        speed_knots=float(t.get("speed_knots", HERO_TELEMETRY.speed_knots)),
+    )
+
+
+def _run_investigation(payload: dict) -> dict:
+    with traced_span("investigation.run", {"has_custom_payload": bool(payload)}):
+
+        is_custom = bool(payload)
+        company_id = payload.get("company_id")
 
         try:
-            screened_reports = _screen_near_miss_reports(NEAR_MISS_REPORTS)
+            telemetry = _build_telemetry_from_payload(payload) if is_custom else HERO_TELEMETRY
+        except (TypeError, ValueError):
+            telemetry = HERO_TELEMETRY  # malformed numeric input - degrade to demo rather than 500
+
+        crew_record = payload.get("crew_record") if is_custom else CREW_RECORD
+        compliance_record = payload.get("compliance_record") if is_custom else COMPLIANCE_RECORD
+        near_miss_reports = payload.get("near_miss_reports") if is_custom else NEAR_MISS_REPORTS
+        crew_record = crew_record or CREW_RECORD
+        compliance_record = compliance_record or COMPLIANCE_RECORD
+        near_miss_reports = near_miss_reports or []
+
+        try:
+            screened_reports = _screen_near_miss_reports(near_miss_reports)
         except Exception:
-            screened_reports = NEAR_MISS_REPORTS  # guardrail itself failed - degrade, don't crash
+            screened_reports = near_miss_reports
 
         try:
-            recent_history = get_recent_incidents(HERO_TELEMETRY.vessel_id, limit=3)
+            recent_history = get_recent_incidents(telemetry.vessel_id, limit=3)
         except Exception:
             recent_history = []
 
@@ -150,16 +177,21 @@ def _run_investigation() -> dict:
 
         oow = OfficerOfTheWatch()
         fleet_context = {
-            "crew_record": CREW_RECORD,
+            "crew_record": crew_record,
             "near_miss_reports": screened_reports,
-            "compliance_record": COMPLIANCE_RECORD,
+            "compliance_record": compliance_record,
         }
 
         with traced_span("oow.handle_telemetry"):
-            incident = oow.handle_telemetry(HERO_TELEMETRY, fleet_context)
+            incident = oow.handle_telemetry(telemetry, fleet_context)
 
         if incident is None:
-            return {"incident": None, "message": "No anomaly detected - fleet remains in normal operations."}
+            return {
+                "incident": None,
+                "message": "No anomaly detected - vessel remains in normal operations.",
+                "vessel_id": telemetry.vessel_id,
+                "data_source": "custom" if is_custom else "demo",
+            }
 
         with traced_span("narrate.gemini_call"):
             narrative, used_ai = _narrate_with_gemini(incident)
@@ -170,6 +202,8 @@ def _run_investigation() -> dict:
             "state": incident.state.value,
             "narrative": narrative,
             "narrative_source": "gemini" if used_ai else "auto-generated",
+            "data_source": "custom" if is_custom else "demo",
+            "company_id": company_id,
             "risk": {
                 "nav": incident.risk.nav_risk.value,
                 "crew": incident.risk.crew_risk.value,
@@ -180,8 +214,7 @@ def _run_investigation() -> dict:
                 "explanation": incident.risk.explanation,
             },
             "pending_actions": [
-                {"description": a.description}
-                for a in incident.actions if a.requires_approval
+                {"description": a.description} for a in incident.actions if a.requires_approval
             ],
             "timeline": [
                 {"actor": t.actor, "description": t.description, "timestamp": t.timestamp.isoformat()}
@@ -197,7 +230,7 @@ def _run_investigation() -> dict:
         try:
             record_incident(result)
         except Exception:
-            pass  # memory bank write is best-effort - never blocks the response
+            pass
 
         return result
 
@@ -213,7 +246,10 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
-            result = _run_investigation()
+            length = int(self.headers.get("Content-Length", 0))
+            raw = self.rfile.read(length) if length else b"{}"
+            payload = json.loads(raw or b"{}")
+            result = _run_investigation(payload)
             self._send_json(result)
         except Exception as e:  # noqa: BLE001
             self._send_json({"error": str(e)}, status=500)
