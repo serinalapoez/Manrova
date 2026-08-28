@@ -4,7 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from .engine import SimulationEngine
 import sys
-sys.path.insert(0, "/workspaces/Manrova")
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from simulation.bridge import SimulationBridge
 
