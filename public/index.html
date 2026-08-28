@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manrova &mdash; Fleet Command Bridge</title>
+<title>Manrova: Fleet Command Bridge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -310,7 +310,8 @@
   <div id="results"></div>
 
   <footer>
-    Synthetic demo data only &middot; no connection to real vessel operational systems &middot;
+    Demo Vessel uses synthetic illustration data. My Fleet accepts real vessel data you provide.
+    No connection to any real vessel's live operational systems &middot;
     <a href="https://github.com/serinalapoez/Manrova">View source</a>
   </footer>
 </div>
@@ -501,7 +502,7 @@ function renderIncidentResult(data) {
 
   let html = '<div class="log-entry">';
   html += '<div class="log-head">';
-  html += '<h2>' + escapeHtml(data.vessel_id) + ' &mdash; Investigation Report</h2>';
+  html += '<h2>' + escapeHtml(data.vessel_id) + ': Investigation Report</h2>';
   html += '<span class="sev-badge sev-' + sev + '">' + sev + ' &middot; ' + pct + '%</span>';
   html += '</div>';
   html += '<p class="small-note" style="margin-top:-8px;">' + dataSourceLabel + '</p>';
