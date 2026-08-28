@@ -484,52 +484,77 @@ async function runInvestigationRequest(payload) {
       return;
     }
 
-    const sev = data.risk.overall;
-    const pct = Math.round(data.risk.confidence * 100);
-    const dataSourceLabel = data.data_source === 'custom' ? 'Real submitted data' : 'Demo scenario';
-
-    let html = '<div class="log-entry">';
-    html += '<div class="log-head">';
-    html += '<h2>' + escapeHtml(data.vessel_id) + ' &mdash; Investigation Report</h2>';
-    html += '<span class="sev-badge sev-' + sev + '">' + sev + ' &middot; ' + pct + '%</span>';
-    html += '</div>';
-    html += '<p class="small-note" style="margin-top:-8px;">' + dataSourceLabel + '</p>';
-
-    html += '<div class="narrative">' + escapeHtml(data.narrative) +
-            '<span class="src">' + (data.narrative_source === 'gemini' ? 'Gemini narrative' : 'Auto-generated summary') + '</span></div>';
-
-    html += '<div class="risk-grid">';
-    html += riskBox('Navigation', data.risk.nav);
-    html += riskBox('Crew Readiness', data.risk.crew);
-    html += riskBox('Fleet Pattern', data.risk.pattern);
-    html += riskBox('Compliance', data.risk.compliance);
-    html += '</div>';
-
-    html += '<div class="section-label">Pending Human Approval</div>';
-    if (data.pending_actions.length > 0) {
-      data.pending_actions.forEach(a => {
-        html += '<div class="action-item"><span>' + escapeHtml(a.description) + '</span><span class="status">awaiting approval</span></div>';
-      });
-    } else {
-      html += '<div class="action-item"><span>No external notification required</span><span class="status">monitoring</span></div>';
-    }
-
-    html += '<div class="section-label">Ship\'s Log</div>';
-    html += '<div class="logbook">';
-    data.timeline.forEach(t => {
-      html += '<div class="t-row"><span class="t-actor">' + escapeHtml(t.actor) + '</span><span>' + escapeHtml(t.description) + '</span></div>';
-    });
-    html += '</div>';
-
-    html += '</div>';
-    results.innerHTML = html;
-    results.style.display = 'block';
-    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    renderIncidentResult(data);
   } catch (err) {
     loading.style.display = 'none';
     if (btn) { btn.disabled = false; btn.textContent = 'Retry Investigation'; }
-    results.innerHTML = '<div class="log-entry">Signal lost reaching the Officer of the Watch. Try again.</div>';
-    results.style.display = 'block';
+    document.getElementById('results').innerHTML = '<div class="log-entry">Signal lost reaching the Officer of the Watch. Try again.</div>';
+    document.getElementById('results').style.display = 'block';
+  }
+}
+
+function renderIncidentResult(data) {
+  const results = document.getElementById('results');
+  const sev = data.risk.overall;
+  const pct = Math.round(data.risk.confidence * 100);
+  const dataSourceLabel = data.data_source === 'custom' ? 'Real submitted data' : 'Demo scenario';
+
+  let html = '<div class="log-entry">';
+  html += '<div class="log-head">';
+  html += '<h2>' + escapeHtml(data.vessel_id) + ' &mdash; Investigation Report</h2>';
+  html += '<span class="sev-badge sev-' + sev + '">' + sev + ' &middot; ' + pct + '%</span>';
+  html += '</div>';
+  html += '<p class="small-note" style="margin-top:-8px;">' + dataSourceLabel + '</p>';
+
+  html += '<div class="narrative">' + escapeHtml(data.narrative) +
+          '<span class="src">' + (data.narrative_source === 'gemini' ? 'Gemini narrative' : 'Auto-generated summary') + '</span></div>';
+
+  html += '<div class="risk-grid">';
+  html += riskBox('Navigation', data.risk.nav);
+  html += riskBox('Crew Readiness', data.risk.crew);
+  html += riskBox('Fleet Pattern', data.risk.pattern);
+  html += riskBox('Compliance', data.risk.compliance);
+  html += '</div>';
+
+  html += '<div class="section-label">Pending Human Approval</div>';
+  if (data.pending_actions.length > 0) {
+    data.pending_actions.forEach(a => {
+      html += '<div class="action-item"><span>' + escapeHtml(a.description) + '</span><span class="status">awaiting approval</span></div>';
+    });
+    html += '<button class="launch" style="margin-top:10px; width:100%;" onclick="approveIncident(\'' + data.incident_id + '\')" id="approveBtn">Approve &amp; Send</button>';
+  } else if (data.state === 'normal' && data.resolved) {
+    html += '<div class="action-item"><span>All actions approved and executed</span><span class="status" style="color:var(--sea-green);">resolved</span></div>';
+  } else {
+    html += '<div class="action-item"><span>No external notification required</span><span class="status">monitoring</span></div>';
+  }
+
+  html += '<div class="section-label">Ship\'s Log</div>';
+  html += '<div class="logbook">';
+  data.timeline.forEach(t => {
+    html += '<div class="t-row"><span class="t-actor">' + escapeHtml(t.actor) + '</span><span>' + escapeHtml(t.description) + '</span></div>';
+  });
+  html += '</div>';
+
+  html += '</div>';
+  results.innerHTML = html;
+  results.style.display = 'block';
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function approveIncident(incidentId) {
+  const btn = document.getElementById('approveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending\u2026'; }
+  try {
+    const res = await fetch('/api/approve', {
+      method: 'POST',
+      body: JSON.stringify({ incident_id: incidentId, approver: 'Fleet Operator' }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); if (btn) { btn.disabled = false; btn.textContent = 'Approve & Send'; } return; }
+    renderIncidentResult(data);
+  } catch (err) {
+    alert('Could not reach the approval endpoint right now.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Approve & Send'; }
   }
 }
 

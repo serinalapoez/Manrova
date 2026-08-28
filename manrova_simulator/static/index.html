@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MANROVA // Simulation Environment</title>
+<style>
+:root{--bg:#061018;--panel:#0b1720;--panel2:#0e1d27;--line:#20333e;--text:#dce8ec;--muted:#78909c;--cyan:#62d8e8;--green:#6ee7a8;--amber:#f4c96b;--red:#ff6b7a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 55% -10%,#102b36 0,#061018 42%,#040a0f 100%);color:var(--text);font:13px/1.4 Inter,ui-sans-serif,system-ui}
+header{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#07131b}
+.brand{letter-spacing:.2em;font-weight:800}.brand span{color:var(--cyan)}.status{display:flex;gap:18px;align-items:center;color:var(--muted)}.dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:7px}
+main{display:grid;grid-template-columns:250px 1fr 330px;gap:12px;padding:12px;height:calc(100vh - 66px)}
+.panel{background:rgba(11,23,32,.92);border:1px solid var(--line);border-radius:10px;overflow:hidden}.title{padding:12px 14px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.12em;color:var(--muted)}
+.list{padding:8px}.vessel{padding:12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--panel2);cursor:pointer}.vessel.active{border-color:#3c8995}.name{font-weight:700}.sub{color:var(--muted);font-size:11px;margin-top:3px}.risk{margin-top:10px;height:5px;background:#172731;border-radius:5px;overflow:hidden}.risk i{display:block;height:100%;background:var(--green)}.risk.high i{background:var(--amber)}.risk.critical i{background:var(--red)}
+.center{display:grid;grid-template-rows:1fr 205px;gap:12px;min-width:0}.map{position:relative;background:linear-gradient(145deg,#07141d,#081c23);overflow:hidden}.grid{position:absolute;inset:0;background-image:linear-gradient(#17313b 1px,transparent 1px),linear-gradient(90deg,#17313b 1px,transparent 1px);background-size:50px 50px;opacity:.35}.sea{position:absolute;inset:0;background:radial-gradient(ellipse at 48% 55%,rgba(45,128,139,.16),transparent 45%)}.route{position:absolute;left:14%;top:63%;width:70%;height:2px;background:repeating-linear-gradient(90deg,var(--cyan) 0 9px,transparent 9px 16px);transform:rotate(-12deg);opacity:.5}.ship{position:absolute;width:22px;height:42px;background:var(--cyan);clip-path:polygon(50% 0,100% 78%,50% 100%,0 78%);filter:drop-shadow(0 0 9px #62d8e8);transition:.2s}.ship2{background:#d8edf0;filter:none}.shiplabel{position:absolute;transform:translate(18px,-8px);font-size:10px;white-space:nowrap}.maphead{position:absolute;top:12px;left:14px;z-index:2}.maphead b{font-size:16px}.telemetry{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px}.metric{border:1px solid var(--line);background:#09161e;border-radius:8px;padding:10px}.metric label{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;font-size:20px;margin-top:4px}.right{display:grid;grid-template-rows:auto 1fr auto;min-height:0}.agents{padding:8px}.agent{display:flex;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid #172832}.agent b{font-size:12px}.agent span{font-size:10px;color:var(--green)}.events{overflow:auto;padding:8px}.event{padding:9px 10px;border-bottom:1px solid #172832}.event b{font-size:10px;color:var(--muted)}.event strong{display:block}.event.critical strong{color:var(--red)}.event.high strong{color:var(--amber)}.controls{padding:10px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);gap:7px}button{background:#10232d;border:1px solid #29434f;color:var(--text);border-radius:6px;padding:8px;cursor:pointer}button:hover{border-color:var(--cyan)}button.primary{background:#0f3440;border-color:#2c7480}.scenario{grid-column:1/-1}.wide{grid-column:span 2}@media(max-width:1000px){main{grid-template-columns:1fr;height:auto}.right,.center{min-height:600px}.center{grid-template-rows:500px 205px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span>MANROVA</span> // SIMULATION ENVIRONMENT</div>
+  <div class="status"><span><i class="dot"></i><span id="run">PAUSED</span></span><span id="clock">T+00:00</span><span id="speed">10x</span></div>
+</header>
+<main>
+  <section class="panel">
+    <div class="title">FLEET / SYNTHETIC</div>
+    <div id="fleet" class="list"></div>
+  </section>
+
+  <section class="center">
+    <div class="panel map">
+      <div class="grid"></div><div class="sea"></div><div class="route"></div>
+      <div class="maphead"><b>TACTICAL VIEW</b><div class="sub">Singapore Strait // synthetic digital twin</div></div>
+      <div id="ship1" class="ship" style="left:46%;top:57%"><div class="shiplabel">MV ATLAS</div></div>
+      <div id="ship2" class="ship ship2" style="left:63%;top:38%"><div class="shiplabel">MV MERIDIAN</div></div>
+    </div>
+    <div class="panel telemetry" id="metrics"></div>
+  </section>
+
+  <section class="panel right">
+    <div>
+      <div class="title">MANROVA AGENT WATCH</div>
+      <div class="agents">
+        <div class="agent"><b>NAVIGATION INTEGRITY</b><span id="nav">STABLE</span></div>
+        <div class="agent"><b>CREW READINESS</b><span id="crew">STABLE</span></div>
+        <div class="agent"><b>NEAR-MISS PATTERNS</b><span id="near">MONITORING</span></div>
+        <div class="agent"><b>COMPLIANCE READINESS</b><span id="comp">READY</span></div>
+        <div class="agent"><b>OOW CORRELATION</b><span id="oow">WATCHING</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="title">EVENT STREAM</div>
+      <div class="events" id="events"></div>
+    </div>
+    <div class="controls">
+      <button class="primary" onclick="post('/api/simulation/start')">▶ START</button>
+      <button onclick="post('/api/simulation/pause')">Ⅱ PAUSE</button>
+      <button onclick="post('/api/simulation/reset')">↺ RESET</button>
+      <button onclick="speed(1)">1x</button><button onclick="speed(10)">10x</button><button onclick="speed(30)">30x</button>
+      <button class="scenario" onclick="scenario('gps_radar_disagreement')">Inject GPS / Radar disagreement</button>
+      <button class="scenario" onclick="scenario('poor_visibility')">Inject poor visibility</button>
+      <button class="scenario" onclick="scenario('engine_degradation')">Inject engine degradation</button>
+      <button class="scenario" onclick="scenario('route_deviation')">Inject route deviation</button>
+      <button class="scenario" onclick="scenario('near_miss')">Inject near miss</button>
+      <button class="scenario" onclick="scenario('crew_fatigue')">Inject crew fatigue</button>
+      <button class="scenario wide" onclick="scenario('compound_incident')">⚠ COMPOUND INCIDENT</button>
+    </div>
+  </section>
+</main>
+<script>
+async function getState(){const r=await fetch('/api/state'); return r.json()}
+async function post(url, body){await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}); render()}
+async function speed(x){await post('/api/simulation/speed',{multiplier:x})}
+async function scenario(x){await post('/api/scenarios/'+x)}
+function pct(x){return Math.max(0,Math.min(100,x))}
+function riskClass(x){return x>=70?'critical':x>=35?'high':''}
+function render(){
+  getState().then(s=>{
+    document.getElementById('run').textContent=s.running?'RUNNING':'PAUSED';
+    document.getElementById('clock').textContent='T+'+(s.sim_minute/60).toFixed(2).padStart(5,'0')+'h';
+    document.getElementById('speed').textContent=s.speed_multiplier+'x';
+    const atlas=s.vessels['V-001'], mer=s.vessels['V-002'];
+    document.getElementById('fleet').innerHTML=Object.values(s.vessels).map(v=>`
+      <div class="vessel ${v.vessel_id==='V-001'?'active':''}">
+        <div class="name">${v.name}</div><div class="sub">${v.vessel_class} · ${v.vessel_id}</div>
+        <div class="sub">SPD ${v.speed_kn.toFixed(1)} kn · ENG ${v.engine_health.toFixed(0)}%</div>
+        <div class="risk ${riskClass(v.risk)}"><i style="width:${v.risk}%"></i></div>
+        <div class="sub">RISK ${v.risk.toFixed(0)}%</div>
+      </div>`).join('');
+    const vals=[
+      ['Risk',atlas.risk.toFixed(0)+'%'],['Nav integrity',atlas.nav_integrity.toFixed(0)+'%'],
+      ['Engine health',atlas.engine_health.toFixed(0)+'%'],['Crew readiness',atlas.crew_readiness.toFixed(0)+'%'],
+      ['Speed',atlas.speed_kn.toFixed(1)+' kn'],['Route deviation',atlas.route_deviation_nm.toFixed(2)+' NM'],
+      ['Visibility',s.environment.visibility_nm.toFixed(1)+' NM'],['Wind',s.environment.wind_kn.toFixed(0)+' kn']
+    ];
+    document.getElementById('metrics').innerHTML=vals.map(x=>`<div class="metric"><label>${x[0]}</label><strong>${x[1]}</strong></div>`).join('');
+    const nav=atlas.nav_integrity<80||Math.abs(atlas.gps_lat-atlas.radar_lat)+Math.abs(atlas.gps_lon-atlas.radar_lon)>.003?'ALERT':'STABLE';
+    document.getElementById('nav').textContent=nav;
+    document.getElementById('crew').textContent=atlas.crew_readiness<70?'ALERT':'STABLE';
+    document.getElementById('near').textContent=s.environment.traffic_density>.8?'ALERT':'MONITORING';
+    document.getElementById('oow').textContent=atlas.risk>=70?'DECISION REQUIRED':atlas.risk>=35?'CORRELATING':'WATCHING';
+    document.getElementById('events').innerHTML=[...s.events].reverse().map(e=>`<div class="event ${e.severity.toLowerCase()}"><b>T+${e.sim_minute.toFixed(1)}m · ${e.severity}</b><strong>${e.title}</strong><span>${e.detail}</span></div>`).join('');
+    // Tactical positions are intentionally normalized to the demo viewport.
+    document.getElementById('ship1').style.left=(38+(atlas.lon-103.80)*350)+'%';
+    document.getElementById('ship1').style.top=(60-(atlas.lat-1.20)*350)+'%';
+    document.getElementById('ship2').style.left=(50+(mer.lon-103.80)*350)+'%';
+    document.getElementById('ship2').style.top=(40-(mer.lat-1.20)*350)+'%';
+  })
+}
+render(); setInterval(render,800);
+</script>
+</body>
+</html>

@@ -62,3 +62,15 @@ def get_recent_incidents(vessel_id: str, limit: int = 5) -> list[dict]:
         .limit(limit)
     )
     return [doc.to_dict() for doc in query.stream()]
+
+
+def get_incident_by_id(incident_id: str) -> dict | None:
+    """Retrieves a single incident record by ID - used by the Approve &
+    Send flow, which resumes an investigation across a separate serverless
+    request rather than holding a live Python object in memory."""
+    client = _get_firestore_client()
+    if client is None:
+        return _fallback_store.get(incident_id)
+
+    doc = client.collection(_COLLECTION).document(incident_id).get()
+    return doc.to_dict() if doc.exists else None
