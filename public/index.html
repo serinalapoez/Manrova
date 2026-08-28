@@ -73,22 +73,6 @@
   }
   .compass { width: 34px; height: 34px; flex-shrink: 0; opacity: 0.9; }
 
-  .fleet-ledger {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 26px;
-  }
-  .ledger-cell { background: var(--navy-panel); padding: 16px 12px; text-align: center; }
-  .ledger-cell .num { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 30px; line-height: 1; }
-  .ledger-cell .label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 5px;
-  }
 
   .manifest {
     background: var(--navy-panel);
@@ -242,12 +226,6 @@
     <p class="tagline">Four watchstanders keep the deck. The Officer of the Watch <span class="hull-tag" style="font-family:'IBM Plex Mono',monospace; font-style: normal; font-size: 10px;">OOW</span> holds the helm.</p>
   </div>
 
-  <div class="fleet-ledger">
-    <div class="ledger-cell"><div class="num" style="color: var(--sea-green);">21</div><div class="label">Normal</div></div>
-    <div class="ledger-cell"><div class="num" style="color: var(--amber);">2</div><div class="label">Monitoring</div></div>
-    <div class="ledger-cell"><div class="num" style="color: var(--alarm);">1</div><div class="label">Incident</div></div>
-  </div>
-
   <div class="tabs">
     <button class="tab-btn active" id="tabDemo" onclick="switchTab('demo')">Demo Vessel</button>
     <button class="tab-btn" id="tabFleet" onclick="switchTab('fleet')">My Fleet</button>
@@ -310,8 +288,7 @@
   <div id="results"></div>
 
   <footer>
-    Demo Vessel uses synthetic illustration data. My Fleet accepts real vessel data you provide.
-    No connection to any real vessel's live operational systems &middot;
+    Demo Vessel uses synthetic illustration data. My Fleet accepts real vessel data you provide. &middot;
     <a href="https://github.com/serinalapoez/Manrova">View source</a>
   </footer>
 </div>
@@ -429,8 +406,31 @@ function renderVesselList() {
         <div><label class="field-label">Continuous Duty Hrs</label><input class="field" id="v${i}_duty" placeholder="4"></div>
       </div>
       <button class="launch" onclick="launchCustomInvestigation(${i})">Launch Investigation</button>
+      ${renderRecentInvestigations(v, i)}
     </div>
   `).join('');
+}
+
+function renderRecentInvestigations(vessel, vesselIndex) {
+  const history = vessel.recent_incidents || [];
+  if (history.length === 0) {
+    return '<p class="small-note" style="margin-top:10px;">No investigations on record yet for this vessel.</p>';
+  }
+  const rows = history.map((record, j) => {
+    const sev = record.risk ? record.risk.overall : 'none';
+    const when = record._recorded_at ? new Date(record._recorded_at).toLocaleString() : '';
+    return `<div class="action-item" style="cursor:pointer;" onclick="viewPastIncident(${vesselIndex}, ${j})">
+      <span>${escapeHtml(when)}</span>
+      <span class="sev-badge sev-${sev}">${sev}</span>
+    </div>`;
+  }).join('');
+  return `<div class="section-label" style="margin-top:14px;">Recent Investigations</div>${rows}`;
+}
+
+function viewPastIncident(vesselIndex, historyIndex) {
+  const record = currentVessels[vesselIndex].recent_incidents[historyIndex];
+  if (!record) return;
+  renderIncidentResult(record);
 }
 
 async function launchCustomInvestigation(index) {
@@ -486,6 +486,13 @@ async function runInvestigationRequest(payload) {
     }
 
     renderIncidentResult(data);
+
+    if (data.data_source === 'custom' && data.vessel_id) {
+      const vessel = currentVessels.find(v => v.name === data.vessel_id);
+      if (vessel) {
+        vessel.recent_incidents = [data, ...(vessel.recent_incidents || [])].slice(0, 3);
+      }
+    }
   } catch (err) {
     loading.style.display = 'none';
     if (btn) { btn.disabled = false; btn.textContent = 'Retry Investigation'; }

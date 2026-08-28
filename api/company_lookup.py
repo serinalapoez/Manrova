@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from enterprise.tenancy.tenancy import lookup_company, list_vessels
+from enterprise.memory.firestore_bank import get_recent_incidents
 
 
 class handler(BaseHTTPRequestHandler):
@@ -33,6 +34,11 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             vessels = list_vessels(company["company_id"])
+            for vessel in vessels:
+                try:
+                    vessel["recent_incidents"] = get_recent_incidents(vessel["name"], limit=3)
+                except Exception:
+                    vessel["recent_incidents"] = []  # memory bank read is best-effort, never blocks lookup
             self._send_json({"company": company, "vessels": vessels})
         except Exception as e:  # noqa: BLE001
             self._send_json({"error": str(e)}, status=500)
