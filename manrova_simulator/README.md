@@ -1,59 +1,38 @@
-# Manrova Simulation Environment
 
-A standalone, synthetic maritime simulation layer designed to sit beside the Manrova command-center application.
+## Background Watch (continuous autonomous monitoring)
 
-## What it does
-
-- Runs a deterministic simulation clock.
-- Simulates vessels, navigation, weather, traffic, engine health, fuel and crew readiness.
-- Streams telemetry through a REST endpoint.
-- Injects incidents such as GPS/radar disagreement, engine degradation, poor visibility, route deviation and near-miss risk.
-- Produces deterministic risk signals that can be consumed by Manrova's existing specialist agents/OOW.
-- Includes a browser UI with a live tactical map, telemetry cards, risk gauge, event timeline and scenario controls.
-
-This simulator intentionally uses synthetic data and does not connect to real vessel operational systems.
-
-## Run
+`background_watch.py` proves Manrova can run continuously in the
+background rather than only on demand from a click or command - it polls
+the running simulator server on an interval and stays silent unless the
+Officer of the Watch actually flags something worth a human's attention.
 
 ```bash
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-
+# Terminal 1: start the simulator server
+cd manrova_simulator
 pip install -r requirements.txt
 uvicorn app.main:app --reload
+
+# Terminal 2: start the background watcher (from the repo root)
+python manrova_simulator/background_watch.py
 ```
 
-Open http://127.0.0.1:8000
+It prints a quiet heartbeat every few seconds. In a third terminal (or
+your browser), inject a scenario to see it react:
 
-## Useful API endpoints
+```bash
+python manrova_simulator/background_watch.py --inject gps_radar_disagreement
+```
 
-- `GET /api/state`
-- `POST /api/simulation/start`
-- `POST /api/simulation/pause`
-- `POST /api/simulation/reset`
-- `POST /api/simulation/speed`
-- `POST /api/scenarios/{scenario}`
-- `GET /api/telemetry`
-- `GET /api/events`
+Within one polling cycle, the watcher prints the full incident: severity,
+state, the relevant timeline entries, and a clear statement that no
+external notification was sent without human approval.
 
-Available scenarios:
+Note: the injected anomaly persists in the simulated telemetry until the
+scenario is reset, so the watcher will keep re-reporting the same incident
+on every poll until you either reset the simulation or stop the watcher
+(`Ctrl+C`). For a clean recording, stop it shortly after the first
+detection rather than let it repeat.
 
-- `gps_radar_disagreement`
-- `engine_degradation`
-- `poor_visibility`
-- `route_deviation`
-- `near_miss`
-- `crew_fatigue`
-- `compound_incident`
-
-## Manrova integration seam
-
-The simulator's `/api/telemetry` response is deliberately structured as an evidence packet. The existing Manrova navigation/crew/compliance/near-miss agents can consume this packet instead of reading a static demo dataset.
-
-Recommended next integration:
-
-`SimulationEngine -> telemetry packet -> Manrova specialist agents -> OOW -> incident state machine -> UI`
-
+Available scenarios: `gps_radar_disagreement`, `engine_degradation`,
+`poor_visibility`, `route_deviation`, `near_miss`, `crew_fatigue`,
+`compound_incident`.
