@@ -14,6 +14,27 @@ main{display:grid;grid-template-columns:250px 1fr 330px;gap:12px;padding:12px;he
 .list{padding:8px}.vessel{padding:12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--panel2);cursor:pointer}.vessel.active{border-color:#3c8995}.name{font-weight:700}.sub{color:var(--muted);font-size:11px;margin-top:3px}.risk{margin-top:10px;height:5px;background:#172731;border-radius:5px;overflow:hidden}.risk i{display:block;height:100%;background:var(--green)}.risk.high i{background:var(--amber)}.risk.critical i{background:var(--red)}
 .center{display:grid;grid-template-rows:1fr 205px;gap:12px;min-width:0}.map{position:relative;background:linear-gradient(145deg,#07141d,#081c23);overflow:hidden}.grid{position:absolute;inset:0;background-image:linear-gradient(#17313b 1px,transparent 1px),linear-gradient(90deg,#17313b 1px,transparent 1px);background-size:50px 50px;opacity:.35}.sea{position:absolute;inset:0;background:radial-gradient(ellipse at 48% 55%,rgba(45,128,139,.16),transparent 45%)}.route{position:absolute;left:14%;top:63%;width:70%;height:2px;background:repeating-linear-gradient(90deg,var(--cyan) 0 9px,transparent 9px 16px);transform:rotate(-12deg);opacity:.5}.ship{position:absolute;width:22px;height:42px;background:var(--cyan);clip-path:polygon(50% 0,100% 78%,50% 100%,0 78%);filter:drop-shadow(0 0 9px #62d8e8);transition:.2s}.ship2{background:#d8edf0;filter:none}.shiplabel{position:absolute;transform:translate(18px,-8px);font-size:10px;white-space:nowrap}.maphead{position:absolute;top:12px;left:14px;z-index:2}.maphead b{font-size:16px}.telemetry{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px}.metric{border:1px solid var(--line);background:#09161e;border-radius:8px;padding:10px}.metric label{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;font-size:20px;margin-top:4px}.right{display:grid;grid-template-rows:auto 1fr auto;min-height:0}.agents{padding:8px}.agent{display:flex;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid #172832}.agent b{font-size:12px}.agent span{font-size:10px;color:var(--green)}.events{overflow:auto;padding:8px}.event{padding:9px 10px;border-bottom:1px solid #172832}.event b{font-size:10px;color:var(--muted)}.event strong{display:block}.event.critical strong{color:var(--red)}.event.high strong{color:var(--amber)}.controls{padding:10px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);gap:7px}button{background:#10232d;border:1px solid #29434f;color:var(--text);border-radius:6px;padding:8px;cursor:pointer}button:hover{border-color:var(--cyan)}button.primary{background:#0f3440;border-color:#2c7480}.scenario{grid-column:1/-1}.wide{grid-column:span 2}@media(max-width:1000px){main{grid-template-columns:1fr;height:auto}.right,.center{min-height:600px}.center{grid-template-rows:500px 205px}}
 </style>
+
+<style>
+.panel.map { position: relative; overflow: hidden; }
+.radar-rings {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(circle at center, transparent 0%, transparent 24%, rgba(64,255,180,0.10) 24.5%, transparent 25%),
+    radial-gradient(circle at center, transparent 0%, transparent 49%, rgba(64,255,180,0.08) 49.5%, transparent 50%),
+    radial-gradient(circle at center, transparent 0%, transparent 74%, rgba(64,255,180,0.06) 74.5%, transparent 75%);
+}
+.radar-sweep {
+  position: absolute; inset: 0; pointer-events: none;
+  background: conic-gradient(from 0deg at 50% 50%, rgba(64,255,180,0.45), rgba(64,255,180,0.08) 18deg, transparent 60deg, transparent 360deg);
+  animation: radar-spin 4s linear infinite;
+  mix-blend-mode: screen;
+}
+@keyframes radar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>
 </head>
 <body>
 <header>
@@ -28,7 +49,7 @@ main{display:grid;grid-template-columns:250px 1fr 330px;gap:12px;padding:12px;he
 
   <section class="center">
     <div class="panel map">
-      <div class="grid"></div><div class="sea"></div><div class="route"></div>
+      <div class="grid"></div><div class="sea"></div><div class="route"></div><div class="radar-sweep"></div><div class="radar-rings"></div>
       <div class="maphead"><b>TACTICAL VIEW</b><div class="sub">Singapore Strait // synthetic digital twin</div></div>
       <div id="ship1" class="ship" style="left:46%;top:57%"><div class="shiplabel">MV ATLAS</div></div>
       <div id="ship2" class="ship ship2" style="left:63%;top:38%"><div class="shiplabel">MV MERIDIAN</div></div>
