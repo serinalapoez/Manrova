@@ -109,10 +109,18 @@ class SimulationEngine:
             vessel.fuel_pct = max(0, vessel.fuel_pct - 0.002 * vessel.speed_kn * sim_minutes)
             vessel.lat += (vessel.speed_kn * sim_minutes / 60 / 60) * 0.00035
             vessel.lon += (vessel.speed_kn * sim_minutes / 60 / 60) * 0.0007
-            vessel.gps_lat = vessel.lat
-            vessel.gps_lon = vessel.lon
-            vessel.radar_lat = vessel.lat
-            vessel.radar_lon = vessel.lon
+            gps_scenario_active = (
+                "gps_radar_disagreement" in self.state.active_scenarios
+                or "compound_incident" in self.state.active_scenarios
+            )
+            if not gps_scenario_active:
+                # Only snap GPS/radar back to the true position while nothing
+                # is actively degrading them - otherwise this overwrites the
+                # injected disagreement on the very next tick, 0.1s later.
+                vessel.gps_lat = vessel.lat
+                vessel.gps_lon = vessel.lon
+                vessel.radar_lat = vessel.lat
+                vessel.radar_lon = vessel.lon
 
         self._recompute_risk()
 
