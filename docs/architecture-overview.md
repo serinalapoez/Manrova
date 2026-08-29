@@ -1,5 +1,7 @@
 # Manrova Architecture
 
+![Manrova Architecture Diagram](manrova-architecture.svg)
+
 ```mermaid
 flowchart TB
     subgraph Sensors["Vessel Telemetry"]
